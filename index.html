@@ -8,15 +8,14 @@
   header,nav,footer,.sidebar,#sidebar-wrapper,#header-wrapper,#footer-wrapper,.post-title,.post-header,.post-footer,.comments,.blog-pager{display:none!important}
   body,.main-outer,.content-outer,.region-inner,.post-body{margin:0!important;padding:0!important;max-width:100%!important;background:#0f172a!important;color:#f8fafc!important;font-family:system-ui,sans-serif!important}
   #app{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:18px 12px 36px;box-sizing:border-box;text-align:center}
-  .chip{background:#1e293b;color:#fff;border:1px solid #a78bfa;border-radius:999px;padding:6px 14px;font-size:.82rem}
+  .row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:500px}
+  .chip{background:#1e293b;color:#fff;border:1px solid #334155;border-radius:999px;padding:6px 12px;font-size:.8rem;cursor:pointer}
+  .chip.on{border-color:#a78bfa;background:#3b0764}
   #cv{width:100%;max-width:440px;height:240px;border-radius:16px}
   #snack{font-size:.9rem;color:#fde68a;max-width:440px;cursor:pointer}
-  #status{font-size:.8rem;color:#93c5fd;max-width:440px;min-height:1.1em}
   .btns{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
   #gen{background:linear-gradient(90deg,#f43f5e,#f59e0b,#10b981,#3b82f6);color:#fff;border:0;border-radius:12px;padding:11px 20px;font-weight:700;cursor:pointer}
   #snackBtn{background:#1e293b;color:#fde68a;border:1px solid #475569;border-radius:12px;padding:11px 14px;font-weight:600;cursor:pointer}
-  #vendBtn{background:#4c1d95;color:#f5d0fe;border:1px solid #c084fc;border-radius:12px;padding:11px 16px;font-weight:700;cursor:pointer}
-  #vendBtn:disabled{opacity:.55;cursor:not-allowed}
   #about{max-width:440px;margin-top:14px;padding:16px;border-radius:16px;background:rgba(30,41,59,.72);border:1px solid #334155;text-align:left;font-size:.86rem;line-height:1.55;color:#cbd5e1}
   #about h2{margin:0 0 8px;font-size:1rem;color:#f8fafc}
   #about p{margin:0 0 10px}
@@ -25,20 +24,18 @@
 </style>
 <div id="app">
   <strong>Rainbow and Bites</strong>
-  <div class="chip" id="wx">New York</div>
+  <div class="row" id="wx"></div>
   <canvas height="480" id="cv" width="880"></canvas>
   <div id="cap"></div>
   <div id="snack" title="Tap for a random snack"></div>
-  <div id="status"></div>
   <div class="btns">
     <button id="gen" type="button">New Rainbow</button>
     <button id="snackBtn" type="button">Random Snack</button>
-    <button id="vendBtn" type="button">Vend (0.33 Pi)</button>
   </div>
   <section id="about">
     <h2>Rainbow and Bites</h2>
-    <p>Welcome to <strong>Rainbow and Bites</strong>—a calm, single-screen browser toy made to give you a quiet pause between clicks. Every rainbow tap pulls current weather from New York, shifting the sky mood and drawing a fresh rainbow with subtle variations in arc and color palette, while you can roll a highly random snack idea whenever you want one.</p>
-    <p>Bringing this project into the <strong>Pi ecosystem</strong> is super exciting, and it feels great to share something simple, lightweight, and fun with Pioneers exploring the Pi Browser. There are no timers, leaderboards, or complicated rules here—just a cozy spot to make a rainbow, check the sky, and grab a snack idea.</p>
+    <p>Welcome to <strong>Rainbow and Bites</strong>—a calm, single-screen browser toy made to give you a quiet pause between clicks. Every tap or city switch pulls current weather from New York, Chicago, and Los Angeles, shifting the sky mood and drawing a fresh rainbow with subtle variations in arc and color palette, while you can roll a highly random snack idea whenever you want one.</p>
+    <p>Bringing this project into the <strong>Pi ecosystem</strong> is super exciting, and it feels great to share something simple, lightweight, and fun with Pioneers exploring the Pi Browser. There are no timers, leaderboards, or complicated rules here—just a cozy spot to make a rainbow, check skies across the US, and grab a snack idea.</p>
     <p>If you enjoy the vibe here, I would love your support—whether that means tapping through a few rainbows, sharing the page with friends, or exploring the rest of the site for more cozy games, posts, and creative projects.</p>
     <p class="links">
       TWITCH: https://www.twitch.tv/arjt27<br />
@@ -51,9 +48,9 @@
 (()=>{
   const cv=document.getElementById("cv"),ctx=cv.getContext("2d"),wx=document.getElementById("wx"),
         cap=document.getElementById("cap"),snack=document.getElementById("snack"),
-        status=document.getElementById("status"),gen=document.getElementById("gen"),
-        snackBtn=document.getElementById("snackBtn"),vendBtn=document.getElementById("vendBtn");
-  const city={n:"New York",lat:40.71,lon:-74.01,t:"",c:0};
+        gen=document.getElementById("gen"),snackBtn=document.getElementById("snackBtn");
+  let i0=0;
+  const C=[["New York",40.71,-74.01],["Chicago",41.88,-87.63],["Los Angeles",34.05,-118.24]].map(([n,lat,lon])=>({n,lat,lon,t:"",c:0}));
   const P=[["Classic",["#ef4444","#f97316","#eab308","#22c55e","#3b82f6","#8b5cf6"]],["Pastel",["#fda4af","#fdba74","#fde047","#86efac","#93c5fd","#d8b4fe"]],["Neon",["#ff007f","#ff5e00","#ffe600","#00ff9d","#00d9ff","#b829ff"]],["Sunset",["#9f1239","#e11d48","#f97316","#fbbf24","#fef08a"]]];
   const BASES=["rolled oats","Greek yogurt","cottage cheese","kiwi slices","toasted plantain","air-fried banana peel","hard-boiled eggs","sliced apple","rice cakes","cucumber rounds","popcorn","roasted chickpeas"];
   const TOPPINGS=["cinnamon & blueberries","chia & honey drizzle","sea salt & crushed peanuts","citrus zest & warm spice","everything seasoning & lemon","dark cocoa nibs & sliced banana","black pepper & herbs","tahini & sesame seeds","smoked paprika & lime","matcha & almond slivers"];
@@ -101,74 +98,18 @@
     snack.textContent="Snack idea: "+lastSnack;
   };
 
-  const showWx=()=>{wx.textContent=`${city.n}${city.t}`};
+  const chips=()=>{wx.innerHTML=C.map((c,i)=>`<button type="button" class="chip ${i===i0?"on":""}" data-i="${i}">${c.n}${c.t}</button>`).join("");wx.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{i0=+b.dataset.i;chips();draw()})};
   const draw=()=>{
-    const [s0,s1]=sky(city.c),[name,cols]=pick(P);
+    const [s0,s1]=sky(C[i0].c),[name,cols]=pick(P);
     const g=ctx.createLinearGradient(0,0,0,cv.height);g.addColorStop(0,s0);g.addColorStop(1,s1);ctx.fillStyle=g;ctx.fillRect(0,0,cv.width,cv.height);
     const cx=cv.width/2+r(-50,50),cy=cv.height-r(30,60),bw=20;let rad=r(250,320);
     cols.forEach(col=>{ctx.beginPath();ctx.arc(cx,cy,rad,Math.PI,0);ctx.lineWidth=bw;ctx.strokeStyle=col;ctx.lineCap="round";ctx.stroke();rad-=bw-1});
-    cap.textContent=`${city.n} • ${name}`;
+    cap.textContent=`${C[i0].n} • ${name}`;
   };
-
-  const dispense=()=>{draw();nextSnack()};
-  const setMsg=m=>{status.textContent=m};
-
-  let authDone=false;
-  const onIncompletePaymentFound=payment=>{
-    setMsg(`Incomplete Testnet payment found (${payment?.identifier||"pending"}).`);
-  };
-  const ensureAuth=async()=>{
-    if(!window.Pi||typeof window.Pi.authenticate!=="function"){
-      throw new Error("Open inside Pi Browser to use Pi payments.");
-    }
-    if(!authDone){
-      setMsg("Requesting Pi Testnet payment permission...");
-      await window.Pi.authenticate(["payments"],onIncompletePaymentFound);
-      authDone=true;
-    }
-  };
-
-  vendBtn.onclick=async()=>{
-    vendBtn.disabled=true;
-    try{
-      await ensureAuth();
-      setMsg("Opening 0.33 Test-Pi vending prompt...");
-      await window.Pi.createPayment(
-        {
-          amount:0.33,
-          memo:"Rainbow and Bites vending pull (0.33 Pi)",
-          metadata:{item:"rainbow_and_snack_pull",pricePi:0.33,env:"testnet"}
-        },
-        {
-          onReadyForServerApproval:paymentId=>{
-            setMsg(`Approving payment ${paymentId} (server hook needed for production)...`);
-            // Replace with your backend call: fetch("/api/pi/approve", { method:"POST", body: JSON.stringify({ paymentId }) })
-          },
-          onReadyForServerCompletion:(paymentId,txid)=>{
-            setMsg(`Completing payment ${paymentId}...`);
-            // Replace with your backend call: fetch("/api/pi/complete", { method:"POST", body: JSON.stringify({ paymentId, txid }) })
-            dispense();
-            setMsg("Dispensed! Fresh rainbow + snack unlocked.");
-          },
-          onCancel:()=>{
-            setMsg("Vending pull cancelled (0.00 Pi charged).");
-          },
-          onError:err=>{
-            setMsg(`Payment error: ${err?.message||"could not complete"}`);
-          }
-        }
-      );
-    }catch(err){
-      setMsg(err?.message||"Pi SDK payment unavailable.");
-    }finally{
-      vendBtn.disabled=false;
-    }
-  };
-
-  gen.onclick=draw;
+  gen.onclick=()=>{i0=(i0+1)%C.length;chips();draw()};
   snackBtn.onclick=nextSnack;
   snack.onclick=nextSnack;
-  showWx();nextSnack();draw();
-  fetch(`https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,weather_code`).then(x=>x.json()).then(d=>{if(d?.current){city.t=" "+Math.round(d.current.temperature_2m)+"°C";city.c=d.current.weather_code;showWx();draw()}}).catch(()=>{});
+  chips();nextSnack();draw();
+  fetch(`https://api.open-meteo.com/v1/forecast?latitude=${C.map(c=>c.lat)}&longitude=${C.map(c=>c.lon)}&current=temperature_2m,weather_code`).then(x=>x.json()).then(d=>{(Array.isArray(d)?d:[d]).forEach((e,i)=>{if(e?.current){C[i].t=" "+Math.round(e.current.temperature_2m)+"°C";C[i].c=e.current.weather_code}});chips();draw()}).catch(()=>{});
 })();
 </script>
