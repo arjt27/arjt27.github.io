@@ -1,5 +1,5 @@
 <!--
-  Rainbow and Bites (v0.125)
+  Rainbow and Bites (v0.126)
   Free to use and share under the GNU General Public License (GPL).
   If you reuse or adapt this code, please keep all social links and the public Pi
   wallet address intact.
@@ -10,6 +10,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Rainbow and Bites</title>
+  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
 
   <!-- ==========================================
        1. STYLES
@@ -172,6 +173,40 @@
     }
     .box p { margin: 0 0 8px; }
     .box p:last-child { margin-bottom: 0; }
+    .auth-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+    .auth-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pi-btn {
+      background: #4c1d95;
+      color: #f8fafc;
+      border: 1px solid #a78bfa;
+      border-radius: 10px;
+      padding: 7px 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .pi-btn.sub {
+      background: #1e293b;
+      border-color: #475569;
+      color: #cbd5e1;
+    }
+    #piStat {
+      font-size: 0.78rem;
+      color: #e2e8f0;
+      word-break: break-word;
+    }
     .wbar {
       display: flex;
       align-items: center;
@@ -222,7 +257,7 @@
       <strong>GNU General Public License (GPL):</strong> Free to use &amp; share — please keep all social links and the public Pi wallet address intact if reused.
     </header>
 
-    <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.125</span></div>
+    <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.126</span></div>
 
     <div class="daily-bar">
       <span id="dailyLabel">Daily Sky &amp; Bite</span>
@@ -240,10 +275,22 @@
     </div>
 
     <section class="box">
+      <h2>Pi Sign-In</h2>
+      <p>Optional sign-in via Pi Browser for a personal greeting.</p>
+      <div class="auth-row">
+        <span id="piStat">Guest mode (not signed in)</span>
+        <div class="auth-actions">
+          <button class="pi-btn" id="piLoginBtn" type="button">Sign in with Pi</button>
+          <button class="pi-btn sub" id="piClearBtn" type="button" hidden>Clear</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="box">
       <h2>Optional Pi Tip Jar (Public Address)</h2>
       <p>No login or backend required—copy the public wallet address below to send a manual tip from your own Pi Wallet.</p>
       <div class="wbar">
-        <code class="waddr" id="addr">GCM47GS76HRSNB55U4W4S5VDGBRSMEUOGYLOBRTT5KRAWW5YEI5YQ6TN</code>
+        <code class="waddr" id="addr">PASTE_PUBLIC_PI_WALLET_ADDRESS_HERE</code>
         <button class="cbtn" id="cBtn" type="button">Copy</button>
       </div>
       <div id="cStat"></div>
@@ -303,6 +350,7 @@
     let snackBag = [];
     let lastSnack = "";
     let isDaily = true;
+    let signedInUser = "";
     let scene = {
       paletteName: "Classic",
       colors: PALETTES[0][1],
@@ -614,7 +662,58 @@
       if ($("snack")) $("snack").textContent = "Snack idea: " + candidate;
     }
 
-    // --- D. Events & Live Weather Fetch ---
+    // --- D. Pi Sign-In, Events & Live Weather Fetch ---
+    function syncPiAuthUI() {
+      const statEl = $("piStat");
+      const btnEl = $("piLoginBtn");
+      const clearEl = $("piClearBtn");
+      if (signedInUser) {
+        if (statEl) statEl.textContent = `Signed in as @${signedInUser}`;
+        if (btnEl) btnEl.textContent = "Refresh Pi Sign-In";
+        if (clearEl) clearEl.hidden = false;
+      } else {
+        if (statEl) statEl.textContent = "Guest mode (not signed in)";
+        if (btnEl) btnEl.textContent = "Sign in with Pi";
+        if (clearEl) clearEl.hidden = true;
+      }
+    }
+
+    const piReady = Boolean(window.Pi && typeof window.Pi.init === "function" && typeof window.Pi.authenticate === "function");
+    if (piReady) {
+      try {
+        window.Pi.init({ version: "2.0" });
+      } catch {}
+    }
+
+    if ($("piLoginBtn")) {
+      $("piLoginBtn").onclick = async () => {
+        const statEl = $("piStat");
+        const btnEl = $("piLoginBtn");
+        if (!piReady) {
+          if (statEl) statEl.textContent = "Open in Pi Browser to sign in with Pi";
+          return;
+        }
+        try {
+          if (btnEl) btnEl.disabled = true;
+          if (statEl) statEl.textContent = "Signing in with Pi...";
+          const auth = await window.Pi.authenticate(["username"], () => {});
+          signedInUser = auth && auth.user && auth.user.username ? auth.user.username : "Pioneer";
+          syncPiAuthUI();
+        } catch {
+          if (statEl) statEl.textContent = "Pi sign-in cancelled or unavailable";
+        } finally {
+          if (btnEl) btnEl.disabled = false;
+        }
+      };
+    }
+
+    if ($("piClearBtn")) {
+      $("piClearBtn").onclick = () => {
+        signedInUser = "";
+        syncPiAuthUI();
+      };
+    }
+
     if ($("cBtn")) {
       $("cBtn").onclick = async () => {
         const addrEl = $("addr");
@@ -646,6 +745,7 @@
     if ($("sBtn")) $("sBtn").onclick = nextSnack;
     if ($("snack")) $("snack").onclick = nextSnack;
 
+    syncPiAuthUI();
     applyDailyVibe();
     window.requestAnimationFrame(drawFrame);
 
