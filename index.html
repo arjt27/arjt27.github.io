@@ -5,136 +5,367 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Rainbow and Bites</title>
   <style>
-    header,nav,footer,.sidebar,#sidebar-wrapper,#header-wrapper,#footer-wrapper,.post-title,.post-header,.post-footer,.comments,.blog-pager{display:none!important}
-    body,.main-outer,.content-outer,.region-inner,.post-body{margin:0!important;padding:0!important;max-width:100%!important;background:#0f172a!important;color:#f8fafc!important;font-family:system-ui,sans-serif!important}
-    #app{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:18px 12px 36px;box-sizing:border-box;text-align:center}
-    .row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:520px}
-    .chip{background:#1e293b;color:#fff;border:1px solid #334155;border-radius:999px;padding:6px 12px;font-size:.8rem;cursor:pointer}
-    .chip.on{border-color:#a78bfa;background:#3b0764}
-    #cv{width:100%;max-width:440px;height:240px;border-radius:16px}
-    #cap{font-size:.86rem;color:#e2e8f0;max-width:440px}
-    #snack{font-size:.9rem;color:#fde68a;max-width:440px;cursor:pointer}
-    .btns{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
-    #gen{background:linear-gradient(90deg,#f43f5e,#f59e0b,#10b981,#3b82f6);color:#fff;border:0;border-radius:12px;padding:11px 20px;font-weight:700;cursor:pointer}
-    #snackBtn{background:#1e293b;color:#fde68a;border:1px solid #475569;border-radius:12px;padding:11px 14px;font-weight:600;cursor:pointer}
-    #about{max-width:440px;margin-top:14px;padding:16px;border-radius:16px;background:rgba(30,41,59,.72);border:1px solid #334155;text-align:left;font-size:.86rem;line-height:1.55;color:#cbd5e1}
-    #about h2{margin:0 0 8px;font-size:1rem;color:#f8fafc}
-    #about p{margin:0 0 10px}
-    #about p:last-child{margin-bottom:0}
-    #about .links{word-break:break-word;font-size:.82rem;color:#e2e8f0}
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #0f172a;
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      justify-content: center;
+      padding: 20px 14px 40px;
+    }
+    .app {
+      width: 100%;
+      max-width: 460px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      text-align: center;
+    }
+    .title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+    .ver {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #c4b5fd;
+      background: #2e1065;
+      border: 1px solid #6d28d9;
+      border-radius: 999px;
+      padding: 2px 8px;
+    }
+    .cities {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+    }
+    .city-btn {
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid #334155;
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .city-btn.active {
+      background: #3b0764;
+      border-color: #a78bfa;
+      color: #ffffff;
+    }
+    canvas {
+      width: 100%;
+      height: 240px;
+      border-radius: 16px;
+      display: block;
+      background: #1e293b;
+    }
+    .caption {
+      font-size: 0.88rem;
+      color: #e2e8f0;
+      min-height: 1.2em;
+    }
+    .snack-box {
+      font-size: 0.92rem;
+      color: #fde68a;
+      background: rgba(30, 41, 59, 0.65);
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 10px 14px;
+      width: 100%;
+      cursor: pointer;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+    .btn-rainbow {
+      background: linear-gradient(90deg, #f43f5e, #f59e0b, #10b981, #3b82f6);
+      color: #ffffff;
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 20px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-snack {
+      background: #1e293b;
+      color: #fde68a;
+      border: 1px solid #475569;
+      border-radius: 12px;
+      padding: 11px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .about {
+      width: 100%;
+      margin-top: 8px;
+      padding: 16px;
+      border-radius: 16px;
+      background: rgba(30, 41, 59, 0.72);
+      border: 1px solid #334155;
+      text-align: left;
+      font-size: 0.86rem;
+      line-height: 1.55;
+      color: #cbd5e1;
+    }
+    .about h2 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+      color: #f8fafc;
+    }
+    .about p {
+      margin: 0 0 10px;
+    }
+    .about p:last-child {
+      margin-bottom: 0;
+    }
+    .links {
+      word-break: break-word;
+      font-size: 0.82rem;
+      color: #e2e8f0;
+    }
   </style>
 </head>
 <body>
-  <div id="app">
-    <strong>Rainbow and Bites</strong>
-    <div class="row" id="wx"></div>
-    <canvas height="480" id="cv" width="880"></canvas>
-    <div id="cap"></div>
-    <div id="snack" title="Tap for a random snack"></div>
-    <div class="btns">
-      <button id="gen" type="button">New Rainbow</button>
-      <button id="snackBtn" type="button">Random Snack</button>
+  <main class="app">
+    <div class="title-row">
+      <span>Rainbow and Bites</span>
+      <span class="ver">v3</span>
     </div>
-    <section id="about">
-      <h2>Rainbow and Bites</h2>
-      <p>Welcome to <strong>Rainbow and Bites</strong>—a calm, single-screen browser toy made to give you a quiet pause between clicks. Every tap or city switch pulls current weather from New York, Chicago, and Los Angeles, showing live conditions and temperatures, shifting the sky mood, and drawing a fresh rainbow with subtle variations in arc and color palette—while you can roll a highly random snack idea whenever you want one.</p>
+
+    <div class="cities" id="cityBar"></div>
+
+    <canvas id="rainbowCanvas" width="880" height="480"></canvas>
+    <div class="caption" id="caption"></div>
+    <div class="snack-box" id="snackText" title="Tap for a random snack"></div>
+
+    <div class="actions">
+      <button class="btn-rainbow" id="rainbowBtn" type="button">New Rainbow</button>
+      <button class="btn-snack" id="snackBtn" type="button">Random Snack</button>
+    </div>
+
+    <section class="about">
+      <h2>About Rainbow and Bites</h2>
+      <p>Welcome to <strong>Rainbow and Bites</strong>—a calm, single-screen browser toy made for a quiet pause between clicks. Switch between New York, Chicago, and Los Angeles to see live weather conditions and temperatures, shift the sky mood, draw a fresh rainbow, and roll a random snack idea.</p>
       <p>There are no timers, leaderboards, or complicated rules here—just a cozy spot to make a rainbow, check skies across the US, and grab a snack idea.</p>
-      <p>If you enjoy the vibe here, I would love your support—whether that means tapping through a few rainbows, sharing the page with friends, or exploring the rest of the site for more cozy games, posts, and creative projects.</p>
+      <p>If you enjoy the vibe here, thanks for stopping by, sharing the page, or checking out more cozy games, posts, and creative projects.</p>
       <p class="links">
         TWITCH: https://www.twitch.tv/arjt27<br />
         BIGO: https://www.bigo.tv/user/Adawg<br />
         ITCH: https://at37.itch.io/
       </p>
     </section>
-  </div>
+  </main>
+
   <script>
-  (()=>{
-    const cv=document.getElementById("cv"),ctx=cv.getContext("2d"),wx=document.getElementById("wx"),
-          cap=document.getElementById("cap"),snack=document.getElementById("snack"),
-          gen=document.getElementById("gen"),snackBtn=document.getElementById("snackBtn");
-    let i0=0;
-    const C=[["New York",40.71,-74.01],["Chicago",41.88,-87.63],["Los Angeles",34.05,-118.24]].map(([n,lat,lon])=>({n,lat,lon,t:"",w:"",c:0}));
-    const P=[["Classic",["#ef4444","#f97316","#eab308","#22c55e","#3b82f6","#8b5cf6"]],["Pastel",["#fda4af","#fdba74","#fde047","#86efac","#93c5fd","#d8b4fe"]],["Neon",["#ff007f","#ff5e00","#ffe600","#00ff9d","#00d9ff","#b829ff"]],["Sunset",["#9f1239","#e11d48","#f97316","#fbbf24","#fef08a"]]];
-    const BASES=["rolled oats","Greek yogurt","cottage cheese","kiwi slices","toasted plantain","air-fried banana peel","hard-boiled eggs","sliced apple","rice cakes","cucumber rounds","popcorn","roasted chickpeas"];
-    const TOPPINGS=["cinnamon & blueberries","chia & honey drizzle","sea salt & crushed peanuts","citrus zest & warm spice","everything seasoning & lemon","dark cocoa nibs & sliced banana","black pepper & herbs","tahini & sesame seeds","smoked paprika & lime","matcha & almond slivers"];
-    const FORMATS=["bowl","plate","skillet bite","parfait","toast topper","crunchy snack"];
+  (() => {
+    const canvas = document.getElementById("rainbowCanvas");
+    const ctx = canvas.getContext("2d");
+    const cityBar = document.getElementById("cityBar");
+    const caption = document.getElementById("caption");
+    const snackText = document.getElementById("snackText");
+    const rainbowBtn = document.getElementById("rainbowBtn");
+    const snackBtn = document.getElementById("snackBtn");
 
-    const wxLabel=code=>{
-      if(code===0)return "Clear";
-      if(code<=2)return "Partly Cloudy";
-      if(code===3)return "Overcast";
-      if(code<=48)return "Foggy";
-      if(code<=57)return "Drizzle";
-      if(code<=67)return "Rain";
-      if(code<=77)return "Snow";
-      if(code<=82)return "Showers";
-      if(code<=86)return "Snow Showers";
+    const cities = [
+      { name: "New York", lat: 40.71, lon: -74.01, tempC: "", condition: "", code: 0 },
+      { name: "Chicago", lat: 41.88, lon: -87.63, tempC: "", condition: "", code: 0 },
+      { name: "Los Angeles", lat: 34.05, lon: -118.24, tempC: "", condition: "", code: 0 }
+    ];
+    let selectedIndex = 0;
+
+    const palettes = [
+      ["Classic", ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#8b5cf6"]],
+      ["Pastel", ["#fda4af", "#fdba74", "#fde047", "#86efac", "#93c5fd", "#d8b4fe"]],
+      ["Neon", ["#ff007f", "#ff5e00", "#ffe600", "#00ff9d", "#00d9ff", "#b829ff"]],
+      ["Sunset", ["#9f1239", "#e11d48", "#f97316", "#fbbf24", "#fef08a"]]
+    ];
+
+    const bases = [
+      "rolled oats", "Greek yogurt", "cottage cheese", "kiwi slices",
+      "toasted plantain", "air-fried banana peel", "hard-boiled eggs", "sliced apple",
+      "rice cakes", "cucumber rounds", "popcorn", "roasted chickpeas"
+    ];
+    const toppings = [
+      "cinnamon & blueberries", "chia & honey drizzle", "sea salt & crushed peanuts",
+      "citrus zest & warm spice", "everything seasoning & lemon", "dark cocoa nibs & sliced banana",
+      "black pepper & herbs", "tahini & sesame seeds", "smoked paprika & lime", "matcha & almond slivers"
+    ];
+    const formats = [
+      "bowl", "plate", "skillet bite", "parfait", "toast topper", "crunchy snack"
+    ];
+
+    function conditionFromCode(code) {
+      if (code === 0) return "Clear";
+      if (code <= 2) return "Partly Cloudy";
+      if (code === 3) return "Overcast";
+      if (code <= 48) return "Foggy";
+      if (code <= 57) return "Drizzle";
+      if (code <= 67) return "Rain";
+      if (code <= 77) return "Snow";
+      if (code <= 82) return "Showers";
+      if (code <= 86) return "Snow Showers";
       return "Thunderstorm";
-    };
-    const sky=c=>c===0?["#0284c7","#38bdf8"]:c<=48?["#334155","#64748b"]:["#0f172a","#1e3a8a"];
+    }
 
-    const randInt=max=>{
-      if(max<=1)return 0;
-      if(window.crypto&&window.crypto.getRandomValues){
-        const arr=new Uint32Array(1),limit=Math.floor(0x100000000/max)*max;
-        let v=0;
-        do{window.crypto.getRandomValues(arr);v=arr[0]}while(v>=limit);
-        return v%max;
+    function skyColors(code) {
+      if (code === 0) return ["#0284c7", "#38bdf8"];
+      if (code <= 48) return ["#334155", "#64748b"];
+      return ["#0f172a", "#1e3a8a"];
+    }
+
+    function randomInt(max) {
+      if (max <= 1) return 0;
+      if (window.crypto && window.crypto.getRandomValues) {
+        const buf = new Uint32Array(1);
+        const limit = Math.floor(0x100000000 / max) * max;
+        let val = 0;
+        do {
+          window.crypto.getRandomValues(buf);
+          val = buf[0];
+        } while (val >= limit);
+        return val % max;
       }
-      return Math.floor(Math.random()*max);
-    };
-    const pick=a=>a[randInt(a.length)];
-    const r=(a,b)=>a+randInt(10000)/10000*(b-a);
+      return Math.floor(Math.random() * max);
+    }
 
-    let bag=[];
-    const refillBag=()=>{
-      const combos=[];
-      for(const b of BASES){
-        for(const t of TOPPINGS){
-          combos.push(`${b} with ${t}`);
-          combos.push(`${pick(FORMATS)} of ${b} + ${t}`);
+    function pickRandom(arr) {
+      return arr[randomInt(arr.length)];
+    }
+
+    function randomRange(min, max) {
+      return min + (randomInt(10000) / 10000) * (max - min);
+    }
+
+    let snackDeck = [];
+    let lastSnack = "";
+
+    function refillSnackDeck() {
+      const items = [];
+      for (const base of bases) {
+        for (const topping of toppings) {
+          items.push(`${base} with ${topping}`);
+          items.push(`${pickRandom(formats)} of ${base} + ${topping}`);
         }
       }
-      for(let i=combos.length-1;i>0;i--){
-        const j=randInt(i+1);
-        [combos[i],combos[j]]=[combos[j],combos[i]];
+      for (let i = items.length - 1; i > 0; i--) {
+        const j = randomInt(i + 1);
+        [items[i], items[j]] = [items[j], items[i]];
       }
-      bag=combos;
-    };
+      snackDeck = items;
+    }
 
-    let lastSnack="";
-    const nextSnack=()=>{
-      if(!bag.length)refillBag();
-      let candidate=bag.pop();
-      if(candidate===lastSnack&&bag.length){
-        const swapIdx=randInt(bag.length);
-        [candidate,bag[swapIdx]]=[bag[swapIdx],candidate];
+    function rollSnack() {
+      if (snackDeck.length === 0) refillSnackDeck();
+      let next = snackDeck.pop();
+      if (next === lastSnack && snackDeck.length > 0) {
+        const idx = randomInt(snackDeck.length);
+        [next, snackDeck[idx]] = [snackDeck[idx], next];
       }
-      lastSnack=candidate;
-      snack.textContent="Snack idea: "+lastSnack;
-    };
+      lastSnack = next;
+      snackText.textContent = `Snack idea: ${lastSnack}`;
+    }
 
-    const chips=()=>{
-      wx.innerHTML=C.map((c,i)=>{
-        const detail=[c.w,c.t].filter(Boolean).join(" • ");
-        return `<button type="button" class="chip ${i===i0?"on":""}" data-i="${i}">${c.n}${detail?" · "+detail:""}</button>`;
+    function renderCities() {
+      cityBar.innerHTML = cities.map((c, idx) => {
+        const info = [c.condition, c.tempC].filter(Boolean).join(" • ");
+        const activeClass = idx === selectedIndex ? " active" : "";
+        return `<button class="city-btn${activeClass}" data-idx="${idx}" type="button">${c.name}${info ? " · " + info : ""}</button>`;
       }).join("");
-      wx.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{i0=+b.dataset.i;chips();draw()});
-    };
-    const draw=()=>{
-      const active=C[i0];
-      const [s0,s1]=sky(active.c),[name,cols]=pick(P);
-      const g=ctx.createLinearGradient(0,0,0,cv.height);g.addColorStop(0,s0);g.addColorStop(1,s1);ctx.fillStyle=g;ctx.fillRect(0,0,cv.width,cv.height);
-      const cx=cv.width/2+r(-50,50),cy=cv.height-r(30,60),bw=20;let rad=r(250,320);
-      cols.forEach(col=>{ctx.beginPath();ctx.arc(cx,cy,rad,Math.PI,0);ctx.lineWidth=bw;ctx.strokeStyle=col;ctx.lineCap="round";ctx.stroke();rad-=bw-1});
-      const wxSummary=[active.w,active.t].filter(Boolean).join(", ");
-      cap.textContent=wxSummary?`${active.n} (${wxSummary}) • ${name}`:`${active.n} • ${name}`;
-    };
-    gen.onclick=()=>{i0=(i0+1)%C.length;chips();draw()};
-    snackBtn.onclick=nextSnack;
-    snack.onclick=nextSnack;
-    chips();nextSnack();draw();
-    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${C.map(c=>c.lat)}&longitude=${C.map(c=>c.lon)}&current=temperature_2m,weather_code`).then(x=>x.json()).then(d=>{(Array.isArray(d)?d:[d]).forEach((e,i)=>{if(e?.current){C[i].t=Math.round(e.current.temperature_2m)+"°C";C[i].c=e.current.weather_code;C[i].w=wxLabel(e.current.weather_code)}});chips();draw()}).catch(()=>{});
+
+      cityBar.querySelectorAll(".city-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          selectedIndex = Number(btn.dataset.idx);
+          renderCities();
+          drawRainbow();
+        });
+      });
+    }
+
+    function drawRainbow() {
+      const city = cities[selectedIndex];
+      const [skyTop, skyBottom] = skyColors(city.code);
+      const [paletteName, colors] = pickRandom(palettes);
+
+      const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      grad.addColorStop(0, skyTop);
+      grad.addColorStop(1, skyBottom);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const cx = canvas.width / 2 + randomRange(-50, 50);
+      const cy = canvas.height - randomRange(30, 60);
+      const bandWidth = 20;
+      let radius = randomRange(250, 320);
+
+      colors.forEach((color) => {
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, Math.PI, 0);
+        ctx.lineWidth = bandWidth;
+        ctx.strokeStyle = color;
+        ctx.lineCap = "round";
+        ctx.stroke();
+        radius -= bandWidth - 1;
+      });
+
+      const weatherNote = [city.condition, city.tempC].filter(Boolean).join(", ");
+      caption.textContent = weatherNote
+        ? `${city.name} (${weatherNote}) • ${paletteName}`
+        : `${city.name} • ${paletteName}`;
+    }
+
+    function loadWeather() {
+      const lats = cities.map((c) => c.lat).join(",");
+      const lons = cities.map((c) => c.lon).join(",");
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&current=temperature_2m,weather_code`;
+
+      fetch(url)
+        .then((res) => res.json())
+        .then((data) => {
+          const list = Array.isArray(data) ? data : [data];
+          list.forEach((entry, i) => {
+            if (entry && entry.current && cities[i]) {
+              cities[i].tempC = `${Math.round(entry.current.temperature_2m)}°C`;
+              cities[i].code = entry.current.weather_code;
+              cities[i].condition = conditionFromCode(entry.current.weather_code);
+            }
+          });
+          renderCities();
+          drawRainbow();
+        })
+        .catch(() => {});
+    }
+
+    rainbowBtn.addEventListener("click", () => {
+      selectedIndex = (selectedIndex + 1) % cities.length;
+      renderCities();
+      drawRainbow();
+    });
+
+    snackBtn.addEventListener("click", rollSnack);
+    snackText.addEventListener("click", rollSnack);
+
+    renderCities();
+    rollSnack();
+    drawRainbow();
+    loadWeather();
   })();
   </script>
 </body>
