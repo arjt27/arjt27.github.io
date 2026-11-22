@@ -1,5 +1,5 @@
 <!--
-  Rainbow and Bites (v0.126)
+  Rainbow and Bites (v0.128)
   Free to use and share under the GNU General Public License (GPL).
   If you reuse or adapt this code, please keep all social links and the public Pi
   wallet address intact.
@@ -185,6 +185,7 @@
       display: flex;
       align-items: center;
       gap: 6px;
+      flex-wrap: wrap;
     }
     .pi-btn {
       background: #4c1d95;
@@ -257,7 +258,7 @@
       <strong>GNU General Public License (GPL):</strong> Free to use &amp; share — please keep all social links and the public Pi wallet address intact if reused.
     </header>
 
-    <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.126</span></div>
+    <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.128</span></div>
 
     <div class="daily-bar">
       <span id="dailyLabel">Daily Sky &amp; Bite</span>
@@ -281,6 +282,7 @@
         <span id="piStat">Guest mode (not signed in)</span>
         <div class="auth-actions">
           <button class="pi-btn" id="piLoginBtn" type="button">Sign in with Pi</button>
+          <button class="pi-btn sub" id="piModeBtn" type="button">Sandbox: OFF</button>
           <button class="pi-btn sub" id="piClearBtn" type="button" hidden>Clear</button>
         </div>
       </div>
@@ -351,6 +353,7 @@
     let lastSnack = "";
     let isDaily = true;
     let signedInUser = "";
+    let sandboxMode = false;
     let scene = {
       paletteName: "Classic",
       colors: PALETTES[0][1],
@@ -663,10 +666,26 @@
     }
 
     // --- D. Pi Sign-In, Events & Live Weather Fetch ---
+    function hasPiSdk() {
+      return Boolean(window.Pi && typeof window.Pi.init === "function" && typeof window.Pi.authenticate === "function");
+    }
+
+    function initPiSdk() {
+      if (!hasPiSdk()) return false;
+      try {
+        window.Pi.init({ version: "2.0", sandbox: sandboxMode });
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
     function syncPiAuthUI() {
       const statEl = $("piStat");
       const btnEl = $("piLoginBtn");
+      const modeEl = $("piModeBtn");
       const clearEl = $("piClearBtn");
+      if (modeEl) modeEl.textContent = sandboxMode ? "Sandbox: ON" : "Sandbox: OFF";
       if (signedInUser) {
         if (statEl) statEl.textContent = `Signed in as @${signedInUser}`;
         if (btnEl) btnEl.textContent = "Refresh Pi Sign-In";
@@ -678,29 +697,65 @@
       }
     }
 
-    const piReady = Boolean(window.Pi && typeof window.Pi.init === "function" && typeof window.Pi.authenticate === "function");
-    if (piReady) {
-      try {
-        window.Pi.init({ version: "2.0" });
-      } catch {}
+    initPiSdk();
+
+    function authenticateWithTimeout(ms = 12000) {
+      return new Promise((resolve, reject) => {
+        let settled = false;
+        const timer = window.setTimeout(() => {
+          if (!settled) {
+            settled = true;
+            reject(new Error("Pi sign-in timed out"));
+          }
+        }, ms);
+
+        Promise.resolve()
+          .then(() => window.Pi.authenticate(["username"], () => {}))
+          .then((res) => {
+            if (!settled) {
+              settled = true;
+              window.clearTimeout(timer);
+              resolve(res);
+            }
+          })
+          .catch((err) => {
+            if (!settled) {
+              settled = true;
+              window.clearTimeout(timer);
+              reject(err);
+            }
+          });
+      });
+    }
+
+    if ($("piModeBtn")) {
+      $("piModeBtn").onclick = () => {
+        sandboxMode = !sandboxMode;
+        initPiSdk();
+        syncPiAuthUI();
+      };
     }
 
     if ($("piLoginBtn")) {
       $("piLoginBtn").onclick = async () => {
         const statEl = $("piStat");
         const btnEl = $("piLoginBtn");
-        if (!piReady) {
-          if (statEl) statEl.textContent = "Open in Pi Browser to sign in with Pi";
+        if (!initPiSdk()) {
+          if (statEl) statEl.textContent = "Pi SDK not loaded — open in Pi Browser";
           return;
         }
         try {
           if (btnEl) btnEl.disabled = true;
           if (statEl) statEl.textContent = "Signing in with Pi...";
-          const auth = await window.Pi.authenticate(["username"], () => {});
+          const auth = await authenticateWithTimeout(12000);
           signedInUser = auth && auth.user && auth.user.username ? auth.user.username : "Pioneer";
           syncPiAuthUI();
-        } catch {
-          if (statEl) statEl.textContent = "Pi sign-in cancelled or unavailable";
+        } catch (err) {
+          if (statEl) {
+            statEl.textContent = err && err.message === "Pi sign-in timed out"
+              ? "Pi sign-in timed out — toggle Sandbox or reopen in Pi Browser"
+              : "Pi sign-in cancelled or unavailable";
+          }
         } finally {
           if (btnEl) btnEl.disabled = false;
         }
