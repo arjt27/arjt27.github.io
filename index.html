@@ -15,33 +15,201 @@
        1. STYLES
        ========================================== -->
   <style>
-    *{box-sizing:border-box}
-    body{margin:0;min-height:100vh;background:#0f172a;color:#f8fafc;font-family:system-ui,sans-serif;display:flex;justify-content:center;padding:18px 12px 36px}
-    .app{width:100%;max-width:450px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
-    header.app-hdr{width:100%;padding:10px 12px;border-radius:12px;background:rgba(30,41,59,.75);border:1px solid #334155;font-size:.76rem;line-height:1.45;color:#cbd5e1}
-    header.app-hdr strong{color:#f8fafc}
-    .top{display:flex;align-items:center;gap:8px;font-weight:700;font-size:1.1rem}
-    .ver{font-size:.7rem;color:#c4b5fd;background:#2e1065;border:1px solid #6d28d9;border-radius:999px;padding:2px 8px}
-    .daily-bar{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;background:rgba(30,41,59,.72);border:1px solid #334155;border-radius:12px;padding:8px 12px;font-size:.78rem;color:#cbd5e1;text-align:left}
-    .daily-btn{background:#3b0764;color:#f8fafc;border:1px solid #a78bfa;border-radius:999px;padding:5px 11px;font-size:.75rem;font-weight:600;cursor:pointer;flex-shrink:0}
-    .row{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;width:100%}
-    .chip{background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:999px;padding:6px 11px;font-size:.78rem;cursor:pointer}
-    .chip.on{background:#3b0764;border-color:#a78bfa}
-    canvas{width:100%;height:230px;border-radius:14px;background:#1e293b}
-    #cap{font-size:.85rem;color:#e2e8f0}
-    #snack{width:100%;font-size:.9rem;color:#fde68a;background:rgba(30,41,59,.65);border:1px solid #334155;border-radius:12px;padding:9px 12px;cursor:pointer}
-    .btns{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
-    #gen{background:linear-gradient(90deg,#f43f5e,#f59e0b,#10b981,#3b82f6);color:#fff;border:0;border-radius:12px;padding:10px 18px;font-weight:700;cursor:pointer}
-    #sBtn{background:#1e293b;color:#fde68a;border:1px solid #475569;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer}
-    .box{width:100%;padding:14px;border-radius:14px;background:rgba(30,41,59,.68);border:1px solid #334155;text-align:left;font-size:.84rem;line-height:1.5;color:#cbd5e1}
-    .box h2{margin:0 0 6px;font-size:.95rem;color:#f8fafc}
-    .box p{margin:0 0 8px}
-    .box p:last-child{margin-bottom:0}
-    .wbar{display:flex;align-items:center;gap:8px;background:#0f172a;border:1px solid #334155;border-radius:10px;padding:7px 9px;margin-top:6px}
-    .waddr{font-family:monospace;font-size:.76rem;color:#fde68a;word-break:break-all;flex:1}
-    .cbtn{background:#334155;color:#f8fafc;border:1px solid #475569;border-radius:8px;padding:5px 10px;font-size:.76rem;font-weight:600;cursor:pointer}
-    #cStat{font-size:.76rem;color:#86efac;margin-top:4px;min-height:1em}
-    .links{word-break:break-word;font-size:.8rem;color:#e2e8f0}
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #0f172a;
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      justify-content: center;
+      padding: 18px 12px 36px;
+    }
+    .app {
+      width: 100%;
+      max-width: 450px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      text-align: center;
+    }
+    header.app-hdr {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(30, 41, 59, 0.78);
+      border: 1px solid #334155;
+      font-size: 0.76rem;
+      line-height: 1.45;
+      color: #cbd5e1;
+    }
+    header.app-hdr strong { color: #f8fafc; }
+    .top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 1.12rem;
+    }
+    .ver {
+      font-size: 0.7rem;
+      color: #c4b5fd;
+      background: #2e1065;
+      border: 1px solid #6d28d9;
+      border-radius: 999px;
+      padding: 2px 8px;
+    }
+    .daily-bar {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: rgba(30, 41, 59, 0.72);
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-size: 0.78rem;
+      color: #cbd5e1;
+      text-align: left;
+    }
+    .daily-btn {
+      background: #3b0764;
+      color: #f8fafc;
+      border: 1px solid #a78bfa;
+      border-radius: 999px;
+      padding: 5px 11px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      min-height: 32px;
+    }
+    .chip {
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid #334155;
+      border-radius: 999px;
+      padding: 6px 11px;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+    .chip.on {
+      background: #3b0764;
+      border-color: #a78bfa;
+    }
+    canvas {
+      width: 100%;
+      height: 230px;
+      border-radius: 14px;
+      background: #1e293b;
+      display: block;
+    }
+    #cap {
+      font-size: 0.85rem;
+      color: #e2e8f0;
+      min-height: 1.2em;
+    }
+    #snack {
+      width: 100%;
+      font-size: 0.9rem;
+      color: #fde68a;
+      background: rgba(30, 41, 59, 0.68);
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 10px 12px;
+      cursor: pointer;
+      min-height: 40px;
+    }
+    .btns {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+    }
+    #gen {
+      background: linear-gradient(90deg, #f43f5e, #f59e0b, #10b981, #3b82f6);
+      color: #ffffff;
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 18px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    #sBtn {
+      background: #1e293b;
+      color: #fde68a;
+      border: 1px solid #475569;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .box {
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      background: rgba(30, 41, 59, 0.68);
+      border: 1px solid #334155;
+      text-align: left;
+      font-size: 0.84rem;
+      line-height: 1.5;
+      color: #cbd5e1;
+    }
+    .box h2 {
+      margin: 0 0 6px;
+      font-size: 0.95rem;
+      color: #f8fafc;
+    }
+    .box p { margin: 0 0 8px; }
+    .box p:last-child { margin-bottom: 0; }
+    .wbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 7px 9px;
+      margin-top: 6px;
+    }
+    .waddr {
+      font-family: monospace;
+      font-size: 0.76rem;
+      color: #fde68a;
+      word-break: break-all;
+      flex: 1;
+    }
+    .cbtn {
+      background: #334155;
+      color: #f8fafc;
+      border: 1px solid #475569;
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    #cStat {
+      font-size: 0.76rem;
+      color: #86efac;
+      margin-top: 4px;
+      min-height: 1em;
+    }
+    .links {
+      word-break: break-word;
+      font-size: 0.8rem;
+      color: #e2e8f0;
+    }
   </style>
 </head>
 <body>
@@ -57,7 +225,7 @@
     <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.125</span></div>
 
     <div class="daily-bar">
-      <span id="dailyLabel">Daily Sky & Bite</span>
+      <span id="dailyLabel">Daily Sky &amp; Bite</span>
       <button class="daily-btn" id="dailyBtn" type="button">Today's Vibe</button>
     </div>
 
@@ -83,7 +251,7 @@
 
     <section class="box">
       <h2>About Rainbow and Bites</h2>
-      <p>Welcome to <strong>Rainbow and Bites</strong>—a calm, single-screen browser toy made for a quiet pause between clicks. Check today's Sky & Bite or switch between New York, Chicago, and Los Angeles to see live weather conditions and temperatures, shift the sky mood, draw a fresh rainbow, and roll a random snack idea.</p>
+      <p>Welcome to <strong>Rainbow and Bites</strong>—a calm, single-screen browser toy made for a quiet pause between clicks. Check today's Sky &amp; Bite or switch between New York, Chicago, and Los Angeles to see live weather conditions and temperatures, shift the sky mood, draw a fresh rainbow, and roll a random snack idea.</p>
       <p>There are no timers, leaderboards, or complicated rules here—just a cozy spot to make a rainbow, check skies across the US, and grab a snack idea.</p>
       <p class="links">TWITCH: https://www.twitch.tv/arjt27<br />BIGO: https://www.bigo.tv/user/Adawg<br />ITCH: https://at37.itch.io/</p>
     </section>
@@ -93,213 +261,413 @@
        3. APP SCRIPTS
        ========================================== -->
   <script>
-  (()=>{
-    try{
-      // --- A. Data & Randomness Helpers ---
-      const $=id=>document.getElementById(id),cv=$("cv"),ctx=cv?.getContext("2d");
-      if(!cv||!ctx)return;
+  (() => {
+    const $ = (id) => document.getElementById(id);
+    const cv = $("cv");
+    const ctx = cv && cv.getContext ? cv.getContext("2d") : null;
+    if (!cv || !ctx) return;
 
-      const C=[["New York",40.71,-74.01],["Chicago",41.88,-87.63],["Los Angeles",34.05,-118.24]].map(([n,lat,lon])=>({n,lat,lon,t:"",w:"",c:0}));
-      const P=[["Classic",["#ef4444","#f97316","#eab308","#22c55e","#3b82f6","#8b5cf6"]],["Pastel",["#fda4af","#fdba74","#fde047","#86efac","#93c5fd","#d8b4fe"]],["Neon",["#ff007f","#ff5e00","#ffe600","#00ff9d","#00d9ff","#b829ff"]],["Sunset",["#9f1239","#e11d48","#f97316","#fbbf24","#fef08a"]]];
-      const B=["rolled oats","Greek yogurt","cottage cheese","kiwi slices","toasted plantain","air-fried banana peel","hard-boiled eggs","sliced apple","rice cakes","cucumber rounds","popcorn","roasted chickpeas"];
-      const T=["cinnamon & blueberries","chia & honey drizzle","sea salt & crushed peanuts","citrus zest & warm spice","everything seasoning & lemon","dark cocoa nibs & sliced banana","black pepper & herbs","tahini & sesame seeds","smoked paprika & lime","matcha & almond slivers"];
-      const F=["bowl","plate","skillet bite","parfait","toast topper","crunchy snack"];
-      const COMBOS=[];
-      for(const b of B)for(const t of T)for(const f of F)COMBOS.push(`${f} of ${b} + ${t}`);
-
-      let i0=0,bag=[],last="",isDaily=true;
-      let scene={nm:"Classic",cols:P[0][1],cx:440,cy:420,bw:19,rad0:275,orbX:730,orbY:92,clouds:[],stars:[],hills:[]};
-
-      const rnd=m=>{
-        if(m<=1)return 0;
-        if(window.crypto&&crypto.getRandomValues){
-          const a=new Uint32Array(1),l=Math.floor(0x100000000/m)*m;
-          let v=0;
-          do{crypto.getRandomValues(a);v=a[0]}while(v>=l);
-          return v%m;
+    // --- A. Data & Randomness Helpers ---
+    const CITIES = [
+      { name: "New York", lat: 40.71, lon: -74.01, temp: "", weather: "", code: 0 },
+      { name: "Chicago", lat: 41.88, lon: -87.63, temp: "", weather: "", code: 0 },
+      { name: "Los Angeles", lat: 34.05, lon: -118.24, temp: "", weather: "", code: 0 }
+    ];
+    const PALETTES = [
+      ["Classic", ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#8b5cf6"]],
+      ["Pastel", ["#fda4af", "#fdba74", "#fde047", "#86efac", "#93c5fd", "#d8b4fe"]],
+      ["Neon", ["#ff007f", "#ff5e00", "#ffe600", "#00ff9d", "#00d9ff", "#b829ff"]],
+      ["Sunset", ["#9f1239", "#e11d48", "#f97316", "#fbbf24", "#fef08a"]]
+    ];
+    const BASES = [
+      "rolled oats", "Greek yogurt", "cottage cheese", "kiwi slices",
+      "toasted plantain", "air-fried banana peel", "hard-boiled eggs", "sliced apple",
+      "rice cakes", "cucumber rounds", "popcorn", "roasted chickpeas"
+    ];
+    const TOPPINGS = [
+      "cinnamon & blueberries", "chia & honey drizzle", "sea salt & crushed peanuts",
+      "citrus zest & warm spice", "everything seasoning & lemon", "dark cocoa nibs & sliced banana",
+      "black pepper & herbs", "tahini & sesame seeds", "smoked paprika & lime", "matcha & almond slivers"
+    ];
+    const FORMATS = ["bowl", "plate", "skillet bite", "parfait", "toast topper", "crunchy snack"];
+    const DAILY_SNACKS = [];
+    for (const b of BASES) {
+      for (const t of TOPPINGS) {
+        for (const f of FORMATS) {
+          DAILY_SNACKS.push(`${f} of ${b} + ${t}`);
         }
-        return Math.floor(Math.random()*m);
-      };
-      const pick=a=>a[rnd(a.length)];
-      const rng=(a,b)=>a+rnd(1e4)/1e4*(b-a);
-      const dayKey=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
-      const seededRng=str=>{
-        let h=2166136261>>>0;
-        for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}
-        return ()=>{h+=0x6d2b79f5;let t=Math.imul(h^h>>>15,1|h);t^=t+Math.imul(t^t>>>7,61|t);return ((t^t>>>14)>>>0)/4294967296};
-      };
-
-      // --- B. Weather & Skyscape Rendering ---
-      const wLbl=c=>c===0?"Clear":c<=2?"Partly Cloudy":c===3?"Overcast":c<=48?"Foggy":c<=57?"Drizzle":c<=67?"Rain":c<=77?"Snow":c<=82?"Showers":c<=86?"Snow Showers":"Thunderstorm";
-      const sky=c=>c<=2?["#0284c7","#38bdf8"]:c<=48?["#334155","#64748b"]:["#0f172a","#1e3a8a"];
-
-      const buildProps=(rf,code)=>{
-        const countC=code<=2?3:code<=48?5:4;
-        const clouds=Array.from({length:countC},(_,k)=>({
-          x:rf()*cv.width,
-          y:68+k*42+rf()*14,
-          s:.75+rf()*.55,
-          spd:.35+rf()*.45
-        }));
-        const stars=Array.from({length:34},()=>({
-          x:rf()*cv.width,
-          y:18+rf()*185,
-          r:1.5+rf()*2.2,
-          ph:rf()*Math.PI*2,
-          tw:.045+rf()*.05
-        }));
-        const hills=[
-          {h:44+rf()*14,amp:18+rf()*10,freq:.007+rf()*.003,off:rf()*10,col:"rgba(15,23,42,.55)"},
-          {h:24+rf()*10,amp:11+rf()*8,freq:.012+rf()*.004,off:rf()*10,col:"rgba(2,6,23,.88)"}
-        ];
-        return {orbX:140+rf()*600,orbY:72+rf()*52,clouds,stars,hills};
-      };
-
-      const drawOrb=(x,y,isClearSky)=>{
-        ctx.save();
-        ctx.fillStyle=isClearSky?"rgba(254,240,138,.92)":"rgba(241,245,249,.88)";
-        ctx.beginPath();
-        ctx.arc(x,y,28,0,Math.PI*2);
-        ctx.fill();
-        ctx.restore();
-      };
-
-      const drawCloud=(x,y,s)=>{
-        ctx.save();
-        ctx.translate(x,y);
-        ctx.scale(s,s);
-        ctx.fillStyle="rgba(255,255,255,.92)";
-        ctx.strokeStyle="rgba(148,163,184,.35)";
-        ctx.lineWidth=2;
-        ctx.beginPath();
-        ctx.arc(0,0,22,0,Math.PI*2);
-        ctx.arc(20,-7,26,0,Math.PI*2);
-        ctx.arc(44,0,20,0,Math.PI*2);
-        ctx.arc(22,8,20,0,Math.PI*2);
-        ctx.fill();
-        ctx.stroke();
-        ctx.restore();
-      };
-
-      const drawHills=hills=>{
-        hills.forEach(hl=>{
-          ctx.beginPath();
-          ctx.moveTo(0,cv.height);
-          for(let x=0;x<=cv.width;x+=16){
-            const y=cv.height-hl.h-Math.sin(x*hl.freq+hl.off)*hl.amp;
-            ctx.lineTo(x,y);
-          }
-          ctx.lineTo(cv.width,cv.height);
-          ctx.closePath();
-          ctx.fillStyle=hl.col;
-          ctx.fill();
-        });
-      };
-
-      const chips=()=>{
-        $("wx").innerHTML=C.map((c,i)=>{const d=[c.w,c.t].filter(Boolean).join(" • ");return `<button type="button" class="chip ${i===i0?"on":""}" data-i="${i}">${c.n}${d?" · "+d:""}</button>`}).join("");
-        $("wx").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{i0=+b.dataset.i;isDaily=false;$("dailyLabel").textContent="Free-roll mode · tap for today's seed";chips();draw()});
-      };
-
-      const setScene=([nm,cols],cx,cy,bw,rad0,rf=()=>rng(0,1))=>{
-        const a=C[i0];
-        const props=buildProps(rf,a.c);
-        scene={nm,cols,cx,cy,bw,rad0,...props};
-        const ws=[a.w,a.t].filter(Boolean).join(", ");
-        const prefix=isDaily?"Daily ":"";
-        $("cap").textContent=ws?`${prefix}${a.n} (${ws}) • ${nm}`:`${prefix}${a.n} • ${nm}`;
-      };
-
-      const draw=()=>setScene(pick(P),cv.width/2+rng(-50,50),cv.height-rng(25,55),19,rng(240,310));
-
-      const tick=()=>{
-        const a=C[i0],[s0,s1]=sky(a.c),g=ctx.createLinearGradient(0,0,0,cv.height);
-        g.addColorStop(0,s0);g.addColorStop(1,s1);ctx.fillStyle=g;ctx.fillRect(0,0,cv.width,cv.height);
-
-        if(a.c<=2){
-          scene.stars.forEach(st=>{
-            st.ph+=st.tw;
-            const alpha=.35+(.5+.5*Math.sin(st.ph))*.65;
-            ctx.fillStyle=`rgba(255,251,235,${alpha.toFixed(2)})`;
-            ctx.beginPath();ctx.arc(st.x,st.y,st.r,0,Math.PI*2);ctx.fill();
-          });
-        }
-
-        drawOrb(scene.orbX,scene.orbY,a.c<=2);
-
-        let rad=scene.rad0;
-        scene.cols.forEach(col=>{ctx.beginPath();ctx.arc(scene.cx,scene.cy,rad,Math.PI,0);ctx.lineWidth=scene.bw;ctx.strokeStyle=col;ctx.lineCap="round";ctx.stroke();rad-=scene.bw-1});
-
-        scene.clouds.forEach(cl=>{
-          cl.x+=cl.spd;
-          if(cl.x-80>cv.width)cl.x=-90;
-          drawCloud(cl.x,cl.y,cl.s);
-        });
-
-        drawHills(scene.hills);
-        requestAnimationFrame(tick);
-      };
-
-      // --- C. Daily Vibe & Snack Generator ---
-      const setDailyVibe=()=>{
-        isDaily=true;
-        const key=dayKey(),sr=seededRng(key);
-        i0=Math.floor(sr()*C.length);
-        const pal=P[Math.floor(sr()*P.length)];
-        const cx=cv.width/2+(sr()*100-50),cy=cv.height-(sr()*30+25),bw=19,rad0=sr()*70+240;
-        last=COMBOS[Math.floor(sr()*COMBOS.length)];
-        $("snack").textContent="Daily bite: "+last;
-        $("dailyLabel").textContent=`Today's Sky & Bite (${key})`;
-        chips();
-        setScene(pal,cx,cy,bw,rad0,sr);
-      };
-
-      const nextSnack=()=>{
-        isDaily=false;
-        $("dailyLabel").textContent="Free-roll mode · tap for today's seed";
-        if(!bag.length){
-          for(const b of B)for(const t of T){bag.push(`${b} with ${t}`,`${pick(F)} of ${b} + ${t}`)}
-          for(let i=bag.length-1;i>0;i--){const j=rnd(i+1);[bag[i],bag[j]]=[bag[j],bag[i]]}
-        }
-        let s=bag.pop();
-        if(s===last&&bag.length){const j=rnd(bag.length);[s,bag[j]]=[bag[j],s]}
-        $("snack").textContent="Snack idea: "+(last=s);
-      };
-
-      // --- D. Events & Live Weather Fetch ---
-      $("cBtn").onclick=async()=>{
-        const v=$("addr").textContent.trim();
-        if(!v||v==="PASTE_PUBLIC_PI_WALLET_ADDRESS_HERE"){$("cStat").textContent="Add your public Pi address in the code first";return}
-        try{await navigator.clipboard.writeText(v);$("cStat").textContent="Public address copied"}catch{$("cStat").textContent="Copy failed — select manually"}
-      };
-      $("dailyBtn").onclick=setDailyVibe;
-      $("gen").onclick=()=>{i0=(i0+1)%C.length;isDaily=false;$("dailyLabel").textContent="Free-roll mode · tap for today's seed";chips();draw()};
-      $("sBtn").onclick=$("snack").onclick=nextSnack;
-
-      setDailyVibe();
-      requestAnimationFrame(tick);
-
-      const lats=C.map(c=>c.lat).join(","),lons=C.map(c=>c.lon).join(",");
-      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&current=temperature_2m,weather_code`)
-        .then(r=>r.ok?r.json():null)
-        .then(d=>{
-          if(!d)return;
-          (Array.isArray(d)?d:[d]).forEach((e,i)=>{
-            if(e&&e.current){
-              C[i].t=Math.round(e.current.temperature_2m)+"°C";
-              C[i].c=e.current.weather_code;
-              C[i].w=wLbl(e.current.weather_code);
-            }
-          });
-          chips();
-          if(isDaily)setDailyVibe();
-          else draw();
-        })
-        .catch(()=>{});
-    }catch(err){
-      const el=document.getElementById("cap");
-      if(el)el.textContent="Display error: "+(err&&err.message?err.message:String(err));
+      }
     }
+
+    let cityIdx = 0;
+    let snackBag = [];
+    let lastSnack = "";
+    let isDaily = true;
+    let scene = {
+      paletteName: "Classic",
+      colors: PALETTES[0][1],
+      cx: 440,
+      cy: 420,
+      bandWidth: 19,
+      startRadius: 275,
+      orbX: 720,
+      orbY: 88,
+      clouds: [],
+      stars: [],
+      hills: []
+    };
+
+    function randInt(max) {
+      if (max <= 1) return 0;
+      if (window.crypto && typeof window.crypto.getRandomValues === "function") {
+        const arr = new Uint32Array(1);
+        const limit = Math.floor(0x100000000 / max) * max;
+        let val = 0;
+        do {
+          window.crypto.getRandomValues(arr);
+          val = arr[0];
+        } while (val >= limit);
+        return val % max;
+      }
+      return Math.floor(Math.random() * max);
+    }
+
+    function pickRandom(list) {
+      return list[randInt(list.length)];
+    }
+
+    function randRange(min, max) {
+      return min + (randInt(10000) / 10000) * (max - min);
+    }
+
+    function getDayKey() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, "0");
+      const d = String(now.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    function createSeededRng(seedStr) {
+      let h = 2166136261 >>> 0;
+      for (let i = 0; i < seedStr.length; i++) {
+        h ^= seedStr.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return () => {
+        h = (h + 0x6d2b79f5) >>> 0;
+        let t = Math.imul(h ^ (h >>> 15), 1 | h);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    // --- B. Weather & Skyscape Rendering ---
+    function weatherLabel(code) {
+      if (code === 0) return "Clear";
+      if (code <= 2) return "Partly Cloudy";
+      if (code === 3) return "Overcast";
+      if (code <= 48) return "Foggy";
+      if (code <= 57) return "Drizzle";
+      if (code <= 67) return "Rain";
+      if (code <= 77) return "Snow";
+      if (code <= 82) return "Showers";
+      if (code <= 86) return "Snow Showers";
+      return "Thunderstorm";
+    }
+
+    function skyGradientColors(code) {
+      if (code <= 2) return ["#0284c7", "#38bdf8"];
+      if (code <= 48) return ["#334155", "#64748b"];
+      return ["#0f172a", "#1e3a8a"];
+    }
+
+    function buildSkyscapeProps(rngFn, weatherCode) {
+      const cloudCount = weatherCode <= 2 ? 3 : weatherCode <= 48 ? 5 : 4;
+      const clouds = [];
+      for (let i = 0; i < cloudCount; i++) {
+        clouds.push({
+          x: rngFn() * cv.width,
+          y: 72 + i * 42 + rngFn() * 14,
+          scale: 0.75 + rngFn() * 0.55,
+          speed: 0.35 + rngFn() * 0.45
+        });
+      }
+
+      const stars = [];
+      for (let i = 0; i < 34; i++) {
+        stars.push({
+          x: rngFn() * cv.width,
+          y: 18 + rngFn() * 185,
+          radius: 1.5 + rngFn() * 2.2,
+          phase: rngFn() * Math.PI * 2,
+          twinkle: 0.045 + rngFn() * 0.05
+        });
+      }
+
+      const hills = [
+        {
+          baseH: 44 + rngFn() * 14,
+          amp: 18 + rngFn() * 10,
+          freq: 0.007 + rngFn() * 0.003,
+          offset: rngFn() * 10,
+          color: "rgba(15, 23, 42, 0.55)"
+        },
+        {
+          baseH: 24 + rngFn() * 10,
+          amp: 11 + rngFn() * 8,
+          freq: 0.012 + rngFn() * 0.004,
+          offset: rngFn() * 10,
+          color: "rgba(2, 6, 23, 0.88)"
+        }
+      ];
+
+      return {
+        orbX: 130 + rngFn() * 620,
+        orbY: 70 + rngFn() * 54,
+        clouds,
+        stars,
+        hills
+      };
+    }
+
+    function drawOrb(x, y, isClear) {
+      ctx.save();
+      ctx.fillStyle = isClear ? "rgba(254, 240, 138, 0.94)" : "rgba(241, 245, 249, 0.88)";
+      ctx.beginPath();
+      ctx.arc(x, y, 28, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawCloud(x, y, scale) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+      ctx.strokeStyle = "rgba(148, 163, 184, 0.35)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, 22, 0, Math.PI * 2);
+      ctx.arc(20, -7, 26, 0, Math.PI * 2);
+      ctx.arc(44, 0, 20, 0, Math.PI * 2);
+      ctx.arc(22, 8, 20, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawHills(hills) {
+      for (const h of hills) {
+        ctx.beginPath();
+        ctx.moveTo(0, cv.height);
+        for (let x = 0; x <= cv.width; x += 16) {
+          const y = cv.height - h.baseH - Math.sin(x * h.freq + h.offset) * h.amp;
+          ctx.lineTo(x, y);
+        }
+        ctx.lineTo(cv.width, cv.height);
+        ctx.closePath();
+        ctx.fillStyle = h.color;
+        ctx.fill();
+      }
+    }
+
+    function renderCityChips() {
+      const box = $("wx");
+      if (!box) return;
+      box.innerHTML = CITIES.map((c, idx) => {
+        const meta = [c.weather, c.temp].filter(Boolean).join(" • ");
+        const active = idx === cityIdx ? " on" : "";
+        return `<button type="button" class="chip${active}" data-idx="${idx}">${c.name}${meta ? " · " + meta : ""}</button>`;
+      }).join("");
+
+      box.querySelectorAll(".chip").forEach((btn) => {
+        btn.onclick = () => {
+          cityIdx = Number(btn.dataset.idx);
+          isDaily = false;
+          if ($("dailyLabel")) $("dailyLabel").textContent = "Free-roll mode · tap for today's seed";
+          renderCityChips();
+          generateRandomScene();
+        };
+      });
+    }
+
+    function applyScene(paletteTuple, cx, cy, bandWidth, startRadius, rngFn) {
+      const city = CITIES[cityIdx] || CITIES[0];
+      const [paletteName, colors] = paletteTuple;
+      const props = buildSkyscapeProps(rngFn || (() => randRange(0, 1)), city.code);
+      scene = {
+        paletteName,
+        colors,
+        cx,
+        cy,
+        bandWidth,
+        startRadius,
+        ...props
+      };
+      const weatherText = [city.weather, city.temp].filter(Boolean).join(", ");
+      const prefix = isDaily ? "Daily " : "";
+      if ($("cap")) {
+        $("cap").textContent = weatherText
+          ? `${prefix}${city.name} (${weatherText}) • ${paletteName}`
+          : `${prefix}${city.name} • ${paletteName}`;
+      }
+    }
+
+    function generateRandomScene() {
+      const pal = pickRandom(PALETTES);
+      const cx = cv.width / 2 + randRange(-50, 50);
+      const cy = cv.height - randRange(25, 55);
+      const startRadius = randRange(240, 310);
+      applyScene(pal, cx, cy, 19, startRadius, () => randRange(0, 1));
+    }
+
+    function drawFrame() {
+      const city = CITIES[cityIdx] || CITIES[0];
+      const [topCol, botCol] = skyGradientColors(city.code);
+      const grad = ctx.createLinearGradient(0, 0, 0, cv.height);
+      grad.addColorStop(0, topCol);
+      grad.addColorStop(1, botCol);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, cv.width, cv.height);
+
+      if (city.code <= 2) {
+        for (const st of scene.stars) {
+          st.phase += st.twinkle;
+          const alpha = 0.35 + (0.5 + 0.5 * Math.sin(st.phase)) * 0.65;
+          ctx.fillStyle = `rgba(255, 251, 235, ${alpha.toFixed(2)})`;
+          ctx.beginPath();
+          ctx.arc(st.x, st.y, st.radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      drawOrb(scene.orbX, scene.orbY, city.code <= 2);
+
+      let radius = scene.startRadius;
+      for (const col of scene.colors) {
+        ctx.beginPath();
+        ctx.arc(scene.cx, scene.cy, radius, Math.PI, 0);
+        ctx.lineWidth = scene.bandWidth;
+        ctx.strokeStyle = col;
+        ctx.lineCap = "round";
+        ctx.stroke();
+        radius -= scene.bandWidth - 1;
+      }
+
+      for (const cl of scene.clouds) {
+        cl.x += cl.speed;
+        if (cl.x - 80 > cv.width) cl.x = -90;
+        drawCloud(cl.x, cl.y, cl.scale);
+      }
+
+      drawHills(scene.hills);
+      window.requestAnimationFrame(drawFrame);
+    }
+
+    // --- C. Daily Vibe & Snack Generator ---
+    function applyDailyVibe() {
+      isDaily = true;
+      const key = getDayKey();
+      const sr = createSeededRng(key);
+      cityIdx = Math.floor(sr() * CITIES.length);
+      const pal = PALETTES[Math.floor(sr() * PALETTES.length)];
+      const cx = cv.width / 2 + (sr() * 100 - 50);
+      const cy = cv.height - (sr() * 30 + 25);
+      const startRadius = sr() * 70 + 240;
+      const dailySnack = DAILY_SNACKS[Math.floor(sr() * DAILY_SNACKS.length)];
+      lastSnack = dailySnack;
+
+      if ($("snack")) $("snack").textContent = "Daily bite: " + dailySnack;
+      if ($("dailyLabel")) $("dailyLabel").textContent = `Today's Sky & Bite (${key})`;
+      renderCityChips();
+      applyScene(pal, cx, cy, 19, startRadius, sr);
+    }
+
+    function nextSnack() {
+      isDaily = false;
+      if ($("dailyLabel")) $("dailyLabel").textContent = "Free-roll mode · tap for today's seed";
+
+      if (snackBag.length === 0) {
+        for (const b of BASES) {
+          for (const t of TOPPINGS) {
+            snackBag.push(`${b} with ${t}`);
+            snackBag.push(`${pickRandom(FORMATS)} of ${b} + ${t}`);
+          }
+        }
+        for (let i = snackBag.length - 1; i > 0; i--) {
+          const j = randInt(i + 1);
+          const tmp = snackBag[i];
+          snackBag[i] = snackBag[j];
+          snackBag[j] = tmp;
+        }
+      }
+
+      let candidate = snackBag.pop();
+      if (candidate === lastSnack && snackBag.length > 0) {
+        const j = randInt(snackBag.length);
+        const tmp = candidate;
+        candidate = snackBag[j];
+        snackBag[j] = tmp;
+      }
+      lastSnack = candidate;
+      if ($("snack")) $("snack").textContent = "Snack idea: " + candidate;
+    }
+
+    // --- D. Events & Live Weather Fetch ---
+    if ($("cBtn")) {
+      $("cBtn").onclick = async () => {
+        const addrEl = $("addr");
+        const statEl = $("cStat");
+        const val = addrEl ? addrEl.textContent.trim() : "";
+        if (!val || val === "PASTE_PUBLIC_PI_WALLET_ADDRESS_HERE") {
+          if (statEl) statEl.textContent = "Add your public Pi address in the code first";
+          return;
+        }
+        try {
+          await navigator.clipboard.writeText(val);
+          if (statEl) statEl.textContent = "Public address copied";
+        } catch {
+          if (statEl) statEl.textContent = "Copy failed — select manually";
+        }
+      };
+    }
+
+    if ($("dailyBtn")) $("dailyBtn").onclick = applyDailyVibe;
+    if ($("gen")) {
+      $("gen").onclick = () => {
+        cityIdx = (cityIdx + 1) % CITIES.length;
+        isDaily = false;
+        if ($("dailyLabel")) $("dailyLabel").textContent = "Free-roll mode · tap for today's seed";
+        renderCityChips();
+        generateRandomScene();
+      };
+    }
+    if ($("sBtn")) $("sBtn").onclick = nextSnack;
+    if ($("snack")) $("snack").onclick = nextSnack;
+
+    applyDailyVibe();
+    window.requestAnimationFrame(drawFrame);
+
+    const lats = CITIES.map((c) => c.lat).join(",");
+    const lons = CITIES.map((c) => c.lon).join(",");
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&current=temperature_2m,weather_code`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data) return;
+        const list = Array.isArray(data) ? data : [data];
+        list.forEach((entry, idx) => {
+          if (entry && entry.current && CITIES[idx]) {
+            CITIES[idx].temp = Math.round(entry.current.temperature_2m) + "°C";
+            CITIES[idx].code = entry.current.weather_code;
+            CITIES[idx].weather = weatherLabel(entry.current.weather_code);
+          }
+        });
+        renderCityChips();
+        if (isDaily) applyDailyVibe();
+        else generateRandomScene();
+      })
+      .catch(() => {});
   })();
   </script>
 </body>
