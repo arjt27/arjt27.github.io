@@ -1,5 +1,5 @@
 <!--
-  Rainbow and Bites (v0.128)
+  Rainbow and Bites (v0.129)
   Free to use and share under the GNU General Public License (GPL).
   If you reuse or adapt this code, please keep all social links and the public Pi
   wallet address intact.
@@ -258,7 +258,7 @@
       <strong>GNU General Public License (GPL):</strong> Free to use &amp; share — please keep all social links and the public Pi wallet address intact if reused.
     </header>
 
-    <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.128</span></div>
+    <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.129</span></div>
 
     <div class="daily-bar">
       <span id="dailyLabel">Daily Sky &amp; Bite</span>
@@ -276,13 +276,13 @@
     </div>
 
     <section class="box">
-      <h2>Pi Sign-In</h2>
+      <h2>Pi Sign-In (Testnet)</h2>
       <p>Optional sign-in via Pi Browser for a personal greeting.</p>
       <div class="auth-row">
         <span id="piStat">Guest mode (not signed in)</span>
         <div class="auth-actions">
           <button class="pi-btn" id="piLoginBtn" type="button">Sign in with Pi</button>
-          <button class="pi-btn sub" id="piModeBtn" type="button">Sandbox: OFF</button>
+          <button class="pi-btn sub" id="piModeBtn" type="button">Sandbox: ON</button>
           <button class="pi-btn sub" id="piClearBtn" type="button" hidden>Clear</button>
         </div>
       </div>
@@ -353,7 +353,7 @@
     let lastSnack = "";
     let isDaily = true;
     let signedInUser = "";
-    let sandboxMode = false;
+    let sandboxMode = true;
     let scene = {
       paletteName: "Classic",
       colors: PALETTES[0][1],
