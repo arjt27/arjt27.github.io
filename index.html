@@ -1,5 +1,5 @@
 <!--
-  Rainbow and Bites (v0.124)
+  Rainbow and Bites (v0.125)
   Free to use and share under the GNU General Public License (GPL).
   If you reuse or adapt this code, please keep all social links and the public Pi
   wallet address intact.
@@ -54,7 +54,7 @@
       <strong>GNU General Public License (GPL):</strong> Free to use &amp; share — please keep all social links and the public Pi wallet address intact if reused.
     </header>
 
-    <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.124</span></div>
+    <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.125</span></div>
 
     <div class="daily-bar">
       <span id="dailyLabel">Daily Sky & Bite</span>
@@ -94,155 +94,213 @@
        ========================================== -->
   <script>
   (()=>{
-    // --- A. Data & Randomness Helpers ---
-    const $=id=>document.getElementById(id),cv=$("cv"),ctx=cv.getContext("2d");
-    const C=[["New York",40.71,-74.01],["Chicago",41.88,-87.63],["Los Angeles",34.05,-118.24]].map(([n,lat,lon])=>({n,lat,lon,t:"",w:"",c:0}));
-    const P=[["Classic",["#ef4444","#f97316","#eab308","#22c55e","#3b82f6","#8b5cf6"]],["Pastel",["#fda4af","#fdba74","#fde047","#86efac","#93c5fd","#d8b4fe"]],["Neon",["#ff007f","#ff5e00","#ffe600","#00ff9d","#00d9ff","#b829ff"]],["Sunset",["#9f1239","#e11d48","#f97316","#fbbf24","#fef08a"]]];
-    const B=["rolled oats","Greek yogurt","cottage cheese","kiwi slices","toasted plantain","air-fried banana peel","hard-boiled eggs","sliced apple","rice cakes","cucumber rounds","popcorn","roasted chickpeas"];
-    const T=["cinnamon & blueberries","chia & honey drizzle","sea salt & crushed peanuts","citrus zest & warm spice","everything seasoning & lemon","dark cocoa nibs & sliced banana","black pepper & herbs","tahini & sesame seeds","smoked paprika & lime","matcha & almond slivers"];
-    const F=["bowl","plate","skillet bite","parfait","toast topper","crunchy snack"];
-    const COMBOS=[];
-    for(const b of B)for(const t of T)for(const f of F)COMBOS.push(`${f} of ${b} + ${t}`);
+    try{
+      // --- A. Data & Randomness Helpers ---
+      const $=id=>document.getElementById(id),cv=$("cv"),ctx=cv?.getContext("2d");
+      if(!cv||!ctx)return;
 
-    let i0=0,bag=[],last="",isDaily=true;
-    let scene={nm:"Classic",cols:P[0][1],cx:440,cy:420,bw:19,rad0:275,orbX:730,orbY:92,clouds:[],stars:[],hills:[]};
+      const C=[["New York",40.71,-74.01],["Chicago",41.88,-87.63],["Los Angeles",34.05,-118.24]].map(([n,lat,lon])=>({n,lat,lon,t:"",w:"",c:0}));
+      const P=[["Classic",["#ef4444","#f97316","#eab308","#22c55e","#3b82f6","#8b5cf6"]],["Pastel",["#fda4af","#fdba74","#fde047","#86efac","#93c5fd","#d8b4fe"]],["Neon",["#ff007f","#ff5e00","#ffe600","#00ff9d","#00d9ff","#b829ff"]],["Sunset",["#9f1239","#e11d48","#f97316","#fbbf24","#fef08a"]]];
+      const B=["rolled oats","Greek yogurt","cottage cheese","kiwi slices","toasted plantain","air-fried banana peel","hard-boiled eggs","sliced apple","rice cakes","cucumber rounds","popcorn","roasted chickpeas"];
+      const T=["cinnamon & blueberries","chia & honey drizzle","sea salt & crushed peanuts","citrus zest & warm spice","everything seasoning & lemon","dark cocoa nibs & sliced banana","black pepper & herbs","tahini & sesame seeds","smoked paprika & lime","matcha & almond slivers"];
+      const F=["bowl","plate","skillet bite","parfait","toast topper","crunchy snack"];
+      const COMBOS=[];
+      for(const b of B)for(const t of T)for(const f of F)COMBOS.push(`${f} of ${b} + ${t}`);
 
-    const rnd=m=>{if(m<=1)return 0;if(crypto?.getRandomValues){const a=new Uint32Array(1),l=Math.floor(0x100000000/m)*m;let v=0;do{crypto.getRandomValues(a);v=a[0]}while(v>=l);return v%m}return Math.floor(Math.random()*m)};
-    const pick=a=>a[rnd(a.length)],rng=(a,b)=>a+rnd(1e4)/1e4*(b-a);
-    const dayKey=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
-    const seededRng=str=>{
-      let h=2166136261>>>0;
-      for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}
-      return ()=>{h+=0x6d2b79f5;let t=Math.imul(h^h>>>15,1|h);t^=t+Math.imul(t^t>>>7,61|t);return ((t^t>>>14)>>>0)/4294967296};
-    };
+      let i0=0,bag=[],last="",isDaily=true;
+      let scene={nm:"Classic",cols:P[0][1],cx:440,cy:420,bw:19,rad0:275,orbX:730,orbY:92,clouds:[],stars:[],hills:[]};
 
-    // --- B. Weather & Skyscape Rendering ---
-    const wLbl=c=>c===0?"Clear":c<=2?"Partly Cloudy":c===3?"Overcast":c<=48?"Foggy":c<=57?"Drizzle":c<=67?"Rain":c<=77?"Snow":c<=82?"Showers":c<=86?"Snow Showers":"Thunderstorm";
-    const sky=c=>c<=2?["#0284c7","#38bdf8"]:c<=48?["#334155","#64748b"]:["#0f172a","#1e3a8a"];
-
-    const buildProps=(rf,code)=>{
-      const countC=code<=2?3:code<=48?5:4;
-      const clouds=Array.from({length:countC},(_,k)=>({
-        x:rf()*cv.width,
-        y:68+k*42+rf()*14,
-        s:.75+rf()*.55,
-        spd:.35+rf()*.45
-      }));
-      const stars=Array.from({length:34},()=>({
-        x:rf()*cv.width,
-        y:18+rf()*185,
-        r:1.5+rf()*2.2,
-        ph:rf()*Math.PI*2,
-        tw:.045+rf()*.05
-      }));
-      const hills=[
-        {h:44+rf()*14,amp:18+rf()*10,freq:.007+rf()*.003,off:rf()*10,col:"rgba(15,23,42,.55)"},
-        {h:24+rf()*10,amp:11+rf()*8,freq:.012+rf()*.004,off:rf()*10,col:"rgba(2,6,23,.88)"}
-      ];
-      return {orbX:140+rf()*600,orbY:72+rf()*52,clouds,stars,hills};
-    };
-
-    const drawOrb=(x,y,isClearSky)=>{
-      ctx.save();
-      ctx.fillStyle=isClearSky?"rgba(254,240,138,.92)":"rgba(241,245,249,.88)";
-      ctx.beginPath();
-      ctx.arc(x,y,28,0,Math.PI*2);
-      ctx.fill();
-      ctx.restore();
-    };
-
-    const drawCloud=(x,y,s)=>{
-      ctx.save();
-      ctx.translate(x,y);
-      ctx.scale(s,s);
-      ctx.fillStyle="rgba(255,255,255,.92)";
-      ctx.strokeStyle="rgba(148,163,184,.35)";
-      ctx.lineWidth=2;
-      ctx.beginPath();
-      ctx.arc(0,0,22,0,Math.PI*2);
-      ctx.arc(20,-7,26,0,Math.PI*2);
-      ctx.arc(44,0,20,0,Math.PI*2);
-      ctx.arc(22,8,20,0,Math.PI*2);
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
-    };
-
-    const drawHills=hills=>{
-      hills.forEach(hl=>{
-        ctx.beginPath();
-        ctx.moveTo(0,cv.height);
-        for(let x=0;x<=cv.width;x+=16){
-          const y=cv.height-hl.h-Math.sin(x*hl.freq+hl.off)*hl.amp;
-          ctx.lineTo(x,y);
+      const rnd=m=>{
+        if(m<=1)return 0;
+        if(window.crypto&&crypto.getRandomValues){
+          const a=new Uint32Array(1),l=Math.floor(0x100000000/m)*m;
+          let v=0;
+          do{crypto.getRandomValues(a);v=a[0]}while(v>=l);
+          return v%m;
         }
-        ctx.lineTo(cv.width,cv.height);
-        ctx.closePath();
-        ctx.fillStyle=hl.col;
+        return Math.floor(Math.random()*m);
+      };
+      const pick=a=>a[rnd(a.length)];
+      const rng=(a,b)=>a+rnd(1e4)/1e4*(b-a);
+      const dayKey=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
+      const seededRng=str=>{
+        let h=2166136261>>>0;
+        for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}
+        return ()=>{h+=0x6d2b79f5;let t=Math.imul(h^h>>>15,1|h);t^=t+Math.imul(t^t>>>7,61|t);return ((t^t>>>14)>>>0)/4294967296};
+      };
+
+      // --- B. Weather & Skyscape Rendering ---
+      const wLbl=c=>c===0?"Clear":c<=2?"Partly Cloudy":c===3?"Overcast":c<=48?"Foggy":c<=57?"Drizzle":c<=67?"Rain":c<=77?"Snow":c<=82?"Showers":c<=86?"Snow Showers":"Thunderstorm";
+      const sky=c=>c<=2?["#0284c7","#38bdf8"]:c<=48?["#334155","#64748b"]:["#0f172a","#1e3a8a"];
+
+      const buildProps=(rf,code)=>{
+        const countC=code<=2?3:code<=48?5:4;
+        const clouds=Array.from({length:countC},(_,k)=>({
+          x:rf()*cv.width,
+          y:68+k*42+rf()*14,
+          s:.75+rf()*.55,
+          spd:.35+rf()*.45
+        }));
+        const stars=Array.from({length:34},()=>({
+          x:rf()*cv.width,
+          y:18+rf()*185,
+          r:1.5+rf()*2.2,
+          ph:rf()*Math.PI*2,
+          tw:.045+rf()*.05
+        }));
+        const hills=[
+          {h:44+rf()*14,amp:18+rf()*10,freq:.007+rf()*.003,off:rf()*10,col:"rgba(15,23,42,.55)"},
+          {h:24+rf()*10,amp:11+rf()*8,freq:.012+rf()*.004,off:rf()*10,col:"rgba(2,6,23,.88)"}
+        ];
+        return {orbX:140+rf()*600,orbY:72+rf()*52,clouds,stars,hills};
+      };
+
+      const drawOrb=(x,y,isClearSky)=>{
+        ctx.save();
+        ctx.fillStyle=isClearSky?"rgba(254,240,138,.92)":"rgba(241,245,249,.88)";
+        ctx.beginPath();
+        ctx.arc(x,y,28,0,Math.PI*2);
         ctx.fill();
-      });
-    };
+        ctx.restore();
+      };
 
-    const chips=()=>{
-      $("wx").innerHTML=C.map((c,i)=>{const d=[c.w,c.t].filter(Boolean).join(" • ");return `<button type="button" class="chip ${i===i0?"on":""}" data-i="${i}">${c.n}${d?" · "+d:""}</button>`}).join("");
-      $("wx").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{i0=+b.dataset.i;isDaily=false;$("dailyLabel").textContent="Free-roll mode · tap for today's seed";chips();draw()});
-    };
+      const drawCloud=(x,y,s)=>{
+        ctx.save();
+        ctx.translate(x,y);
+        ctx.scale(s,s);
+        ctx.fillStyle="rgba(255,255,255,.92)";
+        ctx.strokeStyle="rgba(148,163,184,.35)";
+        ctx.lineWidth=2;
+        ctx.beginPath();
+        ctx.arc(0,0,22,0,Math.PI*2);
+        ctx.arc(20,-7,26,0,Math.PI*2);
+        ctx.arc(44,0,20,0,Math.PI*2);
+        ctx.arc(22,8,20,0,Math.PI*2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      };
 
-    const setScene=([nm,cols],cx,cy,bw,rad0,rf=()=>rng(0,1))=>{
-      const a=C[i0];
-      const props=buildProps(rf,a.c);
-      scene={nm,cols,cx,cy,bw,rad0,...props};
-      const ws=[a.w,a.t].filter(Boolean).join(", ");
-      const prefix=isDaily?"Daily ":"";
-      $("cap").textContent=ws?`${prefix}${a.n} (${ws}) • ${nm}`:`${prefix}${a.n} • ${nm}`;
-    };
-
-    const draw=()=>setScene(pick(P),cv.width/2+rng(-50,50),cv.height-rng(25,55),19,rng(240,310));
-
-    const tick=()=>{
-      const a=C[i0],[s0,s1]=sky(a.c),g=ctx.createLinearGradient(0,0,0,cv.height);
-      g.addColorStop(0,s0);g.addColorStop(1,s1);ctx.fillStyle=g;ctx.fillRect(0,0,cv.width,cv.height);
-
-      if(a.c<=2){
-        scene.stars.forEach(st=>{
-          st.ph+=st.tw;
-          const alpha=.35+(.5+.5*Math.sin(st.ph))*.65;
-          ctx.fillStyle=`rgba(255,251,235,${alpha.toFixed(2)})`;
-          ctx.beginPath();ctx.arc(st.x,st.y,st.r,0,Math.PI*2);ctx.fill();
+      const drawHills=hills=>{
+        hills.forEach(hl=>{
+          ctx.beginPath();
+          ctx.moveTo(0,cv.height);
+          for(let x=0;x<=cv.width;x+=16){
+            const y=cv.height-hl.h-Math.sin(x*hl.freq+hl.off)*hl.amp;
+            ctx.lineTo(x,y);
+          }
+          ctx.lineTo(cv.width,cv.height);
+          ctx.closePath();
+          ctx.fillStyle=hl.col;
+          ctx.fill();
         });
-      }
+      };
 
-      drawOrb(scene.orbX,scene.orbY,a.c<=2);
+      const chips=()=>{
+        $("wx").innerHTML=C.map((c,i)=>{const d=[c.w,c.t].filter(Boolean).join(" • ");return `<button type="button" class="chip ${i===i0?"on":""}" data-i="${i}">${c.n}${d?" · "+d:""}</button>`}).join("");
+        $("wx").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{i0=+b.dataset.i;isDaily=false;$("dailyLabel").textContent="Free-roll mode · tap for today's seed";chips();draw()});
+      };
 
-      let rad=scene.rad0;
-      scene.cols.forEach(col=>{ctx.beginPath();ctx.arc(scene.cx,scene.cy,rad,Math.PI,0);ctx.lineWidth=scene.bw;ctx.strokeStyle=col;ctx.lineCap="round";ctx.stroke();rad-=scene.bw-1});
+      const setScene=([nm,cols],cx,cy,bw,rad0,rf=()=>rng(0,1))=>{
+        const a=C[i0];
+        const props=buildProps(rf,a.c);
+        scene={nm,cols,cx,cy,bw,rad0,...props};
+        const ws=[a.w,a.t].filter(Boolean).join(", ");
+        const prefix=isDaily?"Daily ":"";
+        $("cap").textContent=ws?`${prefix}${a.n} (${ws}) • ${nm}`:`${prefix}${a.n} • ${nm}`;
+      };
 
-      scene.clouds.forEach(cl=>{
-        cl.x+=cl.spd;
-        if(cl.x-80>cv.width)cl.x=-90;
-        drawCloud(cl.x,cl.y,cl.s);
-      });
+      const draw=()=>setScene(pick(P),cv.width/2+rng(-50,50),cv.height-rng(25,55),19,rng(240,310));
 
-      drawHills(scene.hills);
+      const tick=()=>{
+        const a=C[i0],[s0,s1]=sky(a.c),g=ctx.createLinearGradient(0,0,0,cv.height);
+        g.addColorStop(0,s0);g.addColorStop(1,s1);ctx.fillStyle=g;ctx.fillRect(0,0,cv.width,cv.height);
+
+        if(a.c<=2){
+          scene.stars.forEach(st=>{
+            st.ph+=st.tw;
+            const alpha=.35+(.5+.5*Math.sin(st.ph))*.65;
+            ctx.fillStyle=`rgba(255,251,235,${alpha.toFixed(2)})`;
+            ctx.beginPath();ctx.arc(st.x,st.y,st.r,0,Math.PI*2);ctx.fill();
+          });
+        }
+
+        drawOrb(scene.orbX,scene.orbY,a.c<=2);
+
+        let rad=scene.rad0;
+        scene.cols.forEach(col=>{ctx.beginPath();ctx.arc(scene.cx,scene.cy,rad,Math.PI,0);ctx.lineWidth=scene.bw;ctx.strokeStyle=col;ctx.lineCap="round";ctx.stroke();rad-=scene.bw-1});
+
+        scene.clouds.forEach(cl=>{
+          cl.x+=cl.spd;
+          if(cl.x-80>cv.width)cl.x=-90;
+          drawCloud(cl.x,cl.y,cl.s);
+        });
+
+        drawHills(scene.hills);
+        requestAnimationFrame(tick);
+      };
+
+      // --- C. Daily Vibe & Snack Generator ---
+      const setDailyVibe=()=>{
+        isDaily=true;
+        const key=dayKey(),sr=seededRng(key);
+        i0=Math.floor(sr()*C.length);
+        const pal=P[Math.floor(sr()*P.length)];
+        const cx=cv.width/2+(sr()*100-50),cy=cv.height-(sr()*30+25),bw=19,rad0=sr()*70+240;
+        last=COMBOS[Math.floor(sr()*COMBOS.length)];
+        $("snack").textContent="Daily bite: "+last;
+        $("dailyLabel").textContent=`Today's Sky & Bite (${key})`;
+        chips();
+        setScene(pal,cx,cy,bw,rad0,sr);
+      };
+
+      const nextSnack=()=>{
+        isDaily=false;
+        $("dailyLabel").textContent="Free-roll mode · tap for today's seed";
+        if(!bag.length){
+          for(const b of B)for(const t of T){bag.push(`${b} with ${t}`,`${pick(F)} of ${b} + ${t}`)}
+          for(let i=bag.length-1;i>0;i--){const j=rnd(i+1);[bag[i],bag[j]]=[bag[j],bag[i]]}
+        }
+        let s=bag.pop();
+        if(s===last&&bag.length){const j=rnd(bag.length);[s,bag[j]]=[bag[j],s]}
+        $("snack").textContent="Snack idea: "+(last=s);
+      };
+
+      // --- D. Events & Live Weather Fetch ---
+      $("cBtn").onclick=async()=>{
+        const v=$("addr").textContent.trim();
+        if(!v||v==="PASTE_PUBLIC_PI_WALLET_ADDRESS_HERE"){$("cStat").textContent="Add your public Pi address in the code first";return}
+        try{await navigator.clipboard.writeText(v);$("cStat").textContent="Public address copied"}catch{$("cStat").textContent="Copy failed — select manually"}
+      };
+      $("dailyBtn").onclick=setDailyVibe;
+      $("gen").onclick=()=>{i0=(i0+1)%C.length;isDaily=false;$("dailyLabel").textContent="Free-roll mode · tap for today's seed";chips();draw()};
+      $("sBtn").onclick=$("snack").onclick=nextSnack;
+
+      setDailyVibe();
       requestAnimationFrame(tick);
-    };
 
-    // --- C. Daily Vibe & Snack Generator ---
-    const setDailyVibe=()=>{
-      isDaily=true;
-      const key=dayKey(),sr=seededRng(key);
-      i0=Math.floor(sr()*C.length);
-      const pal=P[Math.floor(sr()*P.length)];
-      const cx=cv.width/2+(sr()*100-50),cy=cv.height-(sr()*30+25),bw=19,rad0=sr()*70+240;
-      last=COMBOS[Math.floor(sr()*COMBOS.length)];
-      $("snack").textContent="Daily bite: "+last;
-      $("dailyLabel").textContent=`Today's Sky & Bite (${key})`;
-      chips();
-      setScene(pal,cx,cy,bw,rad0,sr);
-    };
-
-    const nextSnack=()=>{
-      isDaily=false;
-      $("dailyLabel").textContent="Free-roll mode · tap for today's seed";
-      if(!bag.length){
-        for
+      const lats=C.map(c=>c.lat).join(","),lons=C.map(c=>c.lon).join(",");
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&current=temperature_2m,weather_code`)
+        .then(r=>r.ok?r.json():null)
+        .then(d=>{
+          if(!d)return;
+          (Array.isArray(d)?d:[d]).forEach((e,i)=>{
+            if(e&&e.current){
+              C[i].t=Math.round(e.current.temperature_2m)+"°C";
+              C[i].c=e.current.weather_code;
+              C[i].w=wLbl(e.current.weather_code);
+            }
+          });
+          chips();
+          if(isDaily)setDailyVibe();
+          else draw();
+        })
+        .catch(()=>{});
+    }catch(err){
+      const el=document.getElementById("cap");
+      if(el)el.textContent="Display error: "+(err&&err.message?err.message:String(err));
+    }
+  })();
+  </script>
+</body>
+</html>
