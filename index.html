@@ -1,8 +1,7 @@
 <!--
-  Rainbow and Bites (v0.129)
+  Rainbow and Bites (v0.132)
   Free to use and share under the GNU General Public License (GPL).
-  If you reuse or adapt this code, please keep all social links and the public Pi
-  wallet address intact.
+  If you reuse or adapt this code, please keep all social links intact.
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -208,39 +207,6 @@
       color: #e2e8f0;
       word-break: break-word;
     }
-    .wbar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 10px;
-      padding: 7px 9px;
-      margin-top: 6px;
-    }
-    .waddr {
-      font-family: monospace;
-      font-size: 0.76rem;
-      color: #fde68a;
-      word-break: break-all;
-      flex: 1;
-    }
-    .cbtn {
-      background: #334155;
-      color: #f8fafc;
-      border: 1px solid #475569;
-      border-radius: 8px;
-      padding: 5px 10px;
-      font-size: 0.76rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    #cStat {
-      font-size: 0.76rem;
-      color: #86efac;
-      margin-top: 4px;
-      min-height: 1em;
-    }
     .links {
       word-break: break-word;
       font-size: 0.8rem;
@@ -255,10 +221,10 @@
        ========================================== -->
   <main class="app">
     <header class="app-hdr">
-      <strong>GNU General Public License (GPL):</strong> Free to use &amp; share — please keep all social links and the public Pi wallet address intact if reused.
+      <strong>GNU General Public License (GPL):</strong> Free to use &amp; share — please keep all social links intact if reused.
     </header>
 
-    <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.129</span></div>
+    <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.132</span></div>
 
     <div class="daily-bar">
       <span id="dailyLabel">Daily Sky &amp; Bite</span>
@@ -286,16 +252,6 @@
           <button class="pi-btn sub" id="piClearBtn" type="button" hidden>Clear</button>
         </div>
       </div>
-    </section>
-
-    <section class="box">
-      <h2>Optional Pi Tip Jar (Public Address)</h2>
-      <p>No login or backend required—copy the public wallet address below to send a manual tip from your own Pi Wallet.</p>
-      <div class="wbar">
-        <code class="waddr" id="addr">PASTE_PUBLIC_PI_WALLET_ADDRESS_HERE</code>
-        <button class="cbtn" id="cBtn" type="button">Copy</button>
-      </div>
-      <div id="cStat"></div>
     </section>
 
     <section class="box">
@@ -766,24 +722,6 @@
       $("piClearBtn").onclick = () => {
         signedInUser = "";
         syncPiAuthUI();
-      };
-    }
-
-    if ($("cBtn")) {
-      $("cBtn").onclick = async () => {
-        const addrEl = $("addr");
-        const statEl = $("cStat");
-        const val = addrEl ? addrEl.textContent.trim() : "";
-        if (!val || val === "PASTE_PUBLIC_PI_WALLET_ADDRESS_HERE") {
-          if (statEl) statEl.textContent = "Add your public Pi address in the code first";
-          return;
-        }
-        try {
-          await navigator.clipboard.writeText(val);
-          if (statEl) statEl.textContent = "Public address copied";
-        } catch {
-          if (statEl) statEl.textContent = "Copy failed — select manually";
-        }
       };
     }
 
