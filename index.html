@@ -4,6 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Rainbow and Bites</title>
+  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+  <script>
+    if (window.Pi && typeof window.Pi.init === "function") {
+      window.Pi.init({ version: "2.0", sandbox: true });
+    }
+  </script>
   <style>
     * {
       box-sizing: border-box;
@@ -42,6 +48,31 @@
       border: 1px solid #6d28d9;
       border-radius: 999px;
       padding: 2px 8px;
+    }
+    .auth-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+    }
+    .btn-pi {
+      background: #5b21b6;
+      color: #ffffff;
+      border: 1px solid #8b5cf6;
+      border-radius: 999px;
+      padding: 7px 14px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-pi:hover {
+      background: #6d28d9;
+    }
+    .auth-status {
+      font-size: 0.82rem;
+      color: #cbd5e1;
     }
     .cities {
       display: flex;
@@ -147,7 +178,12 @@
   <main class="app">
     <div class="title-row">
       <span>Rainbow and Bites</span>
-      <span class="ver">v0.05</span>
+      <span class="ver">v0.06</span>
+    </div>
+
+    <div class="auth-row">
+      <button class="btn-pi" id="piLoginBtn" type="button">Sign in with Pi</button>
+      <span class="auth-status" id="piUserStatus">Not signed in</span>
     </div>
 
     <div class="cities" id="cityBar"></div>
@@ -183,6 +219,8 @@
     const snackText = document.getElementById("snackText");
     const rainbowBtn = document.getElementById("rainbowBtn");
     const snackBtn = document.getElementById("snackBtn");
+    const piLoginBtn = document.getElementById("piLoginBtn");
+    const piUserStatus = document.getElementById("piUserStatus");
 
     const cities = [
       { name: "New York", lat: 40.71, lon: -74.01, tempC: "", condition: "", code: 0 },
@@ -211,6 +249,25 @@
     const formats = [
       "bowl", "plate", "skillet bite", "parfait", "toast topper", "crunchy snack"
     ];
+
+    function onIncompletePaymentFound(payment) {
+      console.warn("Incomplete Pi payment found:", payment);
+    }
+
+    async function signInWithPi() {
+      if (!window.Pi || typeof window.Pi.authenticate !== "function") {
+        piUserStatus.textContent = "Open in Pi Browser to sign in";
+        return;
+      }
+      piUserStatus.textContent = "Signing in...";
+      try {
+        const auth = await window.Pi.authenticate(["username"], onIncompletePaymentFound);
+        const username = auth && auth.user && auth.user.username;
+        piUserStatus.textContent = username ? `Signed in as @${username}` : "Signed in";
+      } catch (err) {
+        piUserStatus.textContent = "Sign-in cancelled or unavailable";
+      }
+    }
 
     function conditionFromCode(code) {
       if (code === 0) return "Clear";
@@ -353,12 +410,12 @@
         .catch(() => {});
     }
 
+    piLoginBtn.addEventListener("click", signInWithPi);
     rainbowBtn.addEventListener("click", () => {
       selectedIndex = (selectedIndex + 1) % cities.length;
       renderCities();
       drawRainbow();
     });
-
     snackBtn.addEventListener("click", rollSnack);
     snackText.addEventListener("click", rollSnack);
 
