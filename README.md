@@ -1,3 +1,3 @@
 Hello everyone, this is an app I am developing to put within the pi ecosystem(crypto). It is pretty easy to develop, in fact no backend is required unless you are processing transactions. 
 I was debating if I would and just figured not to. If you want to support my creative mind there are so many places to do that, mainly my blog funvideogames.biz which has all my links one way or another.
-PLUS if the pi ecosystem is something you are interested in, the app has my public wallet key loaded so that you can copy it easily.
+PLUS if the pi ecosystem is something you are interested in, the app has my public wallet key loaded so that you can copy it easily. App version 0.160 onwards is me migrating the app to the ecosystem so it is "done" after that.
