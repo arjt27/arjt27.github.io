@@ -1,5 +1,5 @@
 <!--
-  Rainbow and Bites (v0.153)
+  Rainbow and Bites (v0.154)
   Free to use and share under the GNU General Public License (GPL).
   If you reuse or adapt this code, please keep all social links intact.
 -->
@@ -298,7 +298,7 @@
       <strong>GNU General Public License (GPL):</strong> Free to use &amp; share — please keep all social links intact if reused.
     </header>
 
-    <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.153</span></div>
+    <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.154</span></div>
 
     <div class="daily-bar">
       <span id="dailyLabel">Daily Sky &amp; Bite</span>
@@ -405,14 +405,14 @@
       }
     }
 
-    const SKYLINE_BUILDINGS = [
-      { x: 24, w: 46, h: 52, roof: "flat" },
-      { x: 76, w: 54, h: 74, roof: "pitched" },
-      { x: 138, w: 42, h: 46, roof: "stepped" },
-      { x: 645, w: 48, h: 64, roof: "pitched" },
-      { x: 700, w: 56, h: 82, roof: "stepped" },
-      { x: 764, w: 46, h: 50, roof: "flat" },
-      { x: 816, w: 44, h: 60, roof: "pitched" }
+    const ROOFTOPS = [
+      { x: 20, w: 46, h: 48, roof: "flat" },
+      { x: 72, w: 54, h: 68, roof: "pitched" },
+      { x: 132, w: 40, h: 42, roof: "stepped" },
+      { x: 650, w: 48, h: 60, roof: "pitched" },
+      { x: 704, w: 54, h: 76, roof: "stepped" },
+      { x: 764, w: 46, h: 46, roof: "flat" },
+      { x: 816, w: 44, h: 56, roof: "pitched" }
     ];
 
     let cityIdx = 0;
@@ -431,6 +431,7 @@
     let dragLastY = 0;
     let hillLift = 0;
     let hillShift = 0;
+    let rafId = 0;
 
     let scene = {
       paletteName: "Classic",
@@ -673,34 +674,30 @@
     }
 
     function drawBuildings(period) {
-      const baseLine = cv.height - Math.max(8, hillLift * 0.35);
+      const groundY = cv.height - Math.max(8, hillLift * 0.3);
       const glow = period === "night" || period === "dusk";
       ctx.save();
-      for (const b of SKYLINE_BUILDINGS) {
-        const bx = b.x + hillShift * 6;
-        const topY = baseLine - b.h;
-        ctx.fillStyle = "rgba(15, 23, 42, 0.84)";
-        ctx.fillRect(bx, topY, b.w, b.h + 12);
-
+      ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
+      for (const b of ROOFTOPS) {
+        const bx = b.x + hillShift * 5;
+        const topY = groundY - b.h;
+        ctx.fillRect(bx, topY, b.w, b.h + 10);
         if (b.roof === "pitched") {
           ctx.beginPath();
           ctx.moveTo(bx - 3, topY);
-          ctx.lineTo(bx + b.w * 0.5, topY - 11);
+          ctx.lineTo(bx + b.w * 0.5, topY - 10);
           ctx.lineTo(bx + b.w + 3, topY);
           ctx.closePath();
           ctx.fill();
         } else if (b.roof === "stepped") {
-          const sw = b.w * 0.44;
-          ctx.fillRect(bx + (b.w - sw) * 0.5, topY - 8, sw, 8);
+          const sw = b.w * 0.45;
+          ctx.fillRect(bx + (b.w - sw) * 0.5, topY - 7, sw, 7);
         }
-
         if (glow) {
           ctx.fillStyle = period === "night" ? "rgba(253, 224, 71, 0.72)" : "rgba(254, 215, 170, 0.65)";
-          for (let wy = topY + 8; wy < baseLine - 10; wy += 14) {
-            for (let wx = bx + 7; wx < bx + b.w - 8; wx += 11) {
-              ctx.fillRect(wx, wy, 5, 7);
-            }
-          }
+          ctx.fillRect(bx + 7, topY + 8, 5, 7);
+          if (b.w > 44) ctx.fillRect(bx + b.w - 12, topY + 8, 5, 7);
+          ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
         }
       }
       ctx.restore();
@@ -897,7 +894,9 @@
       drawHills(scene.hills);
       drawTrees(scene.trees, scene.hillRef);
       drawSkyscapeDrawings();
-      window.requestAnimationFrame(drawFrame);
+      if (rafId) {
+        rafId = window.requestAnimationFrame(drawFrame);
+      }
     }
 
     // --- C. Skyscape Drawing & Interactive Drag Controls ---
@@ -1008,3 +1007,231 @@
       $("undoDrawBtn").onclick = () => {
         drawings.pop();
       };
+    }
+
+    if ($("clearDrawBtn")) {
+      $("clearDrawBtn").onclick = () => {
+        drawings = [];
+        activeShape = null;
+      };
+    }
+
+    // --- D. Daily Vibe & Snack Generator ---
+    function applyDailyVibe() {
+      isDaily = true;
+      hillLift = 0;
+      hillShift = 0;
+      const key = getDayKey();
+      const sr = createSeededRng(key);
+      cityIdx = Math.floor(sr() * CITIES.length);
+      const pal = PALETTES[Math.floor(sr() * PALETTES.length)];
+      const cx = cv.width / 2 + (sr() * 100 - 50);
+      const cy = cv.height - (sr() * 30 + 25);
+      const startRadius = sr() * 70 + 240;
+      const dailySnack = DAILY_SNACKS[Math.floor(sr() * DAILY_SNACKS.length)];
+      lastSnack = dailySnack;
+
+      if ($("snack")) $("snack").textContent = "Daily bite: " + dailySnack;
+      if ($("dailyLabel")) $("dailyLabel").textContent = `Today's Sky & Bite (${key})`;
+      renderCityChips();
+      applyScene(pal, cx, cy, 19, startRadius, sr);
+    }
+
+    function nextSnack() {
+      isDaily = false;
+      if ($("dailyLabel")) $("dailyLabel").textContent = "Free-roll mode · tap for today's seed";
+
+      if (snackBag.length === 0) {
+        for (const b of BASES) {
+          for (const t of TOPPINGS) {
+            snackBag.push(`${b} with ${t}`);
+            snackBag.push(`${pickRandom(FORMATS)} of ${b} + ${t}`);
+          }
+        }
+        for (let i = snackBag.length - 1; i > 0; i--) {
+          const j = randInt(i + 1);
+          const tmp = snackBag[i];
+          snackBag[i] = snackBag[j];
+          snackBag[j] = tmp;
+        }
+      }
+
+      let candidate = snackBag.pop();
+      if (candidate === lastSnack && snackBag.length > 0) {
+        const j = randInt(snackBag.length);
+        const tmp = candidate;
+        candidate = snackBag[j];
+        snackBag[j] = tmp;
+      }
+      lastSnack = candidate;
+      if ($("snack")) $("snack").textContent = "Snack idea: " + candidate;
+    }
+
+    // --- E. Pi Tip Jar Copy, Pi Sign-In, Events & Live Weather Fetch ---
+    if ($("copyWalletBtn")) {
+      $("copyWalletBtn").onclick = async () => {
+        const addr = ($("piWalletAddr") && $("piWalletAddr").textContent) || "";
+        const statusEl = $("copyStatus");
+        try {
+          if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+            await navigator.clipboard.writeText(addr);
+          } else {
+            const ta = document.createElement("textarea");
+            ta.value = addr;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            ta.remove();
+          }
+          if (statusEl) statusEl.textContent = "Wallet address copied";
+        } catch {
+          if (statusEl) statusEl.textContent = "Select and copy the address manually";
+        }
+      };
+    }
+
+    function hasPiSdk() {
+      return Boolean(window.Pi && typeof window.Pi.init === "function" && typeof window.Pi.authenticate === "function");
+    }
+
+    function initPiSdk() {
+      if (!hasPiSdk()) return false;
+      try {
+        window.Pi.init({ version: "2.0", sandbox: sandboxMode });
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    function syncPiAuthUI() {
+      const statEl = $("piStat");
+      const btnEl = $("piLoginBtn");
+      const modeEl = $("piModeBtn");
+      const clearEl = $("piClearBtn");
+      if (modeEl) modeEl.textContent = sandboxMode ? "Sandbox: ON" : "Sandbox: OFF";
+      if (signedInUser) {
+        if (statEl) statEl.textContent = `Signed in as @${signedInUser}`;
+        if (btnEl) btnEl.textContent = "Refresh Pi Sign-In";
+        if (clearEl) clearEl.hidden = false;
+      } else {
+        if (statEl) statEl.textContent = "Guest mode (not signed in)";
+        if (btnEl) btnEl.textContent = "Sign in with Pi";
+        if (clearEl) clearEl.hidden = true;
+      }
+    }
+
+    initPiSdk();
+
+    function authenticateWithTimeout(ms = 12000) {
+      return new Promise((resolve, reject) => {
+        let settled = false;
+        const timer = window.setTimeout(() => {
+          if (!settled) {
+            settled = true;
+            reject(new Error("Pi sign-in timed out"));
+          }
+        }, ms);
+
+        Promise.resolve()
+          .then(() => window.Pi.authenticate(["username"], () => {}))
+          .then((res) => {
+            if (!settled) {
+              settled = true;
+              window.clearTimeout(timer);
+              resolve(res);
+            }
+          })
+          .catch((err) => {
+            if (!settled) {
+              settled = true;
+              window.clearTimeout(timer);
+              reject(err);
+            }
+          });
+      });
+    }
+
+    if ($("piModeBtn")) {
+      $("piModeBtn").onclick = () => {
+        sandboxMode = !sandboxMode;
+        initPiSdk();
+        syncPiAuthUI();
+      };
+    }
+
+    if ($("piLoginBtn")) {
+      $("piLoginBtn").onclick = async () => {
+        const statEl = $("piStat");
+        const btnEl = $("piLoginBtn");
+        if (!initPiSdk()) {
+          if (statEl) statEl.textContent = "Pi SDK not loaded — open in Pi Browser";
+          return;
+        }
+        try {
+          if (btnEl) btnEl.disabled = true;
+          if (statEl) statEl.textContent = "Signing in with Pi...";
+          const auth = await authenticateWithTimeout(12000);
+          signedInUser = auth && auth.user && auth.user.username ? auth.user.username : "Pioneer";
+          syncPiAuthUI();
+        } catch (err) {
+          if (statEl) {
+            statEl.textContent = err && err.message === "Pi sign-in timed out"
+              ? "Pi sign-in timed out — toggle Sandbox or reopen in Pi Browser"
+              : "Pi sign-in cancelled or unavailable";
+          }
+        } finally {
+          if (btnEl) btnEl.disabled = false;
+        }
+      };
+    }
+
+    if ($("piClearBtn")) {
+      $("piClearBtn").onclick = () => {
+        signedInUser = "";
+        syncPiAuthUI();
+      };
+    }
+
+    if ($("dailyBtn")) $("dailyBtn").onclick = applyDailyVibe;
+    if ($("gen")) {
+      $("gen").onclick = () => {
+        cityIdx = (cityIdx + 1) % CITIES.length;
+        isDaily = false;
+        hillLift = 0;
+        hillShift = 0;
+        if ($("dailyLabel")) $("dailyLabel").textContent = "Free-roll mode · tap for today's seed";
+        renderCityChips();
+        generateRandomScene();
+      };
+    }
+    if ($("sBtn")) $("sBtn").onclick = nextSnack;
+    if ($("snack")) $("snack").onclick = nextSnack;
+
+    syncPiAuthUI();
+    applyDailyVibe();
+    rafId = window.requestAnimationFrame(drawFrame);
+
+    const lats = CITIES.map((c) => c.lat).join(",");
+    const lons = CITIES.map((c) => c.lon).join(",");
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&current=temperature_2m,weather_code`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data) return;
+        const list = Array.isArray(data) ? data : [data];
+        list.forEach((entry, idx) => {
+          if (entry && entry.current && CITIES[idx]) {
+            CITIES[idx].temp = Math.round(entry.current.temperature_2m) + "°C";
+            CITIES[idx].code = entry.current.weather_code;
+            CITIES[idx].weather = weatherLabel(entry.current.weather_code);
+          }
+        });
+        renderCityChips();
+        if (isDaily) applyDailyVibe();
+        else generateRandomScene();
+      })
+      .catch(() => {});
+  })();
+  </script>
+</body>
+</html>
