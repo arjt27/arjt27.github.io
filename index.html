@@ -36,7 +36,7 @@
     .t-btn.on { background: #4c1d95; border-color: #a78bfa; color: #fff; }
     .swatch { width: 18px; height: 18px; border-radius: 999px; border: 2px solid transparent; padding: 0; cursor: pointer; }
     .swatch.on { border-color: #fff; transform: scale(1.12); }
-    canvas { width: 100%; height: 230px; border-radius: 14px; background: #0284c7; display: block; touch-action: none; cursor: grab; }
+    canvas { width: 100%; height: 230px; border-radius: 14px; background: #1e293b; display: block; touch-action: none; cursor: grab; }
     canvas.draw-mode { cursor: crosshair; }
     canvas.dragging { cursor: grabbing; }
     #cap { font-size: 0.85rem; color: #e2e8f0; min-height: 1.2em; }
@@ -146,34 +146,24 @@
 
     function randInt(max) {
       if (max <= 1) return 0;
-      if (window.crypto && typeof window.crypto.getRandomValues === "function") {
-        var arr = new Uint32Array(1);
-        var limit = Math.floor(4294967296 / max) * max;
-        var v = 0;
-        do { window.crypto.getRandomValues(arr); v = arr[0]; } while (v >= limit);
-        return v % max;
-      }
       return Math.floor(Math.random() * max);
     }
     function pickRandom(list) { return list[randInt(list.length)]; }
-    function randRange(min, max) { return min + (randInt(10000) / 10000) * (max - min); }
+    function randRange(min, max) { return min + Math.random() * (max - min); }
     function pad2(n) { return n < 10 ? "0" + n : String(n); }
     function getDayKey() {
       var d = new Date();
       return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
     }
     function createSeededRng(seedStr) {
-      var h = 2166136261 >>> 0;
+      var sum = 0;
       for (var i = 0; i < seedStr.length; i++) {
-        h ^= seedStr.charCodeAt(i);
-        h = (h * 16777619) >>> 0;
+        sum = (sum * 31 + seedStr.charCodeAt(i)) % 2147483647;
       }
-      var state = h || 123456789;
+      var cur = sum || 42;
       return function () {
-        state ^= state << 13;
-        state ^= state >>> 17;
-        state ^= state << 5;
-        return ((state >>> 0) % 1000000) / 1000000;
+        cur = (cur * 48271) % 2147483647;
+        return cur / 2147483647;
       };
     }
 
@@ -252,7 +242,7 @@
       return { orbX: 130 + rngFn() * 620, orbY: 70 + rngFn() * 54, clouds: clouds, stars: stars, hills: hills, trees: trees, plane: plane, hillRef: hills[1] };
     }
 
-    var initProps = buildSkyscapeProps(function () { return randRange(0, 1); }, 0, "day");
+    var initProps = buildSkyscapeProps(Math.random, 0, "day");
     var scene = {
       paletteName: PALETTES[0][0],
       colors: PALETTES[0][1],
@@ -348,7 +338,7 @@
       var city = CITIES[cityIdx] || CITIES[0];
       var clk = getCityClock(city.tzOffset);
       var palInfo = computeSkyPalette(city.code, clk.period);
-      var props = buildSkyscapeProps(rngFn || function () { return randRange(0, 1); }, city.code, clk.period);
+      var props = buildSkyscapeProps(rngFn || Math.random, city.code, clk.period);
       scene = {
         paletteName: paletteTuple[0],
         colors: paletteTuple[1],
@@ -378,7 +368,7 @@
     }
 
     function generateRandomScene() {
-      applyScene(pickRandom(PALETTES), cv.width / 2 + randRange(-50, 50), cv.height - randRange(25, 55), 19, randRange(240, 310), function () { return randRange(0, 1); });
+      applyScene(pickRandom(PALETTES), cv.width / 2 + randRange(-50, 50), cv.height - randRange(25, 55), 19, randRange(240, 310), Math.random);
     }
 
     function enterFreeRoll(nextIdx) {
@@ -451,4 +441,100 @@
             ctx.strokeStyle = "rgba(148, 163, 184, 0.35)";
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.arc(0, 0, 22, 0
+            ctx.arc(0, 0, 22, 0, Math.PI * 2);
+            ctx.arc(20, -7, 26, 0, Math.PI * 2);
+            ctx.arc(44, 0, 20, 0, Math.PI * 2);
+            ctx.arc(22, 8, 20, 0, Math.PI * 2);
+            ctx.fill(); ctx.stroke();
+            ctx.restore();
+          }
+        }
+
+        drawBuildings(scene.period);
+        if (scene.hills && scene.hills.length) {
+          for (var hi = 0; hi < scene.hills.length; hi++) {
+            var h = scene.hills[hi];
+            ctx.beginPath();
+            ctx.moveTo(0, cv.height);
+            for (var x = 0; x <= cv.width; x += 16) ctx.lineTo(x, hillSurfaceY(h, x, hi));
+            ctx.lineTo(cv.width, cv.height);
+            ctx.closePath();
+            ctx.fillStyle = h.color;
+            ctx.fill();
+          }
+        }
+        if (scene.hillRef && scene.trees && scene.trees.length) {
+          for (var tri = 0; tri < scene.trees.length; tri++) {
+            var tr = scene.trees[tri];
+            ctx.save();
+            ctx.translate(tr.x, hillSurfaceY(scene.hillRef, tr.x, 1) + 2);
+            ctx.scale(tr.scale, tr.scale);
+            ctx.fillStyle = "#1e1b18";
+            ctx.fillRect(-2.5, -11, 5, 12);
+            ctx.fillStyle = tr.canopy;
+            ctx.beginPath();
+            ctx.arc(0, -17, 9.5, 0, Math.PI * 2);
+            ctx.arc(-6.5, -12.5, 7, 0, Math.PI * 2);
+            ctx.arc(6.5, -12.5, 7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+        for (var di = 0; di < drawings.length; di++) renderSingleDrawing(drawings[di]);
+        if (activeShape) renderSingleDrawing(activeShape);
+      } catch (_err) {}
+      window.requestAnimationFrame(drawFrame);
+    }
+
+    function setToolMode(nextMode) {
+      toolMode = nextMode;
+      var modes = ["drag", "line", "oval", "box"];
+      var ids = ["modeDrag", "modeLine", "modeOval", "modeBox"];
+      for (var i = 0; i < modes.length; i++) {
+        var el = $(ids[i]);
+        if (el) el.classList.toggle("on", modes[i] === nextMode);
+      }
+      cv.classList.toggle("draw-mode", nextMode !== "drag");
+    }
+    function toCanvasCoords(ev) {
+      var r = cv.getBoundingClientRect();
+      if (!r.width || !r.height) return { x: 0, y: 0 };
+      return { x: ((ev.clientX - r.left) / r.width) * cv.width, y: ((ev.clientY - r.top) / r.height) * cv.height };
+    }
+    function hitsRainbow(x, y) {
+      var dist = Math.hypot(x - scene.cx, y - scene.cy);
+      var outer = scene.startRadius + scene.bandWidth;
+      var inner = Math.max(16, scene.startRadius - scene.colors.length * (scene.bandWidth - 1) - scene.bandWidth);
+      return y <= scene.cy + 14 && dist >= inner && dist <= outer;
+    }
+
+    cv.addEventListener("pointerdown", function (ev) {
+      activePointerId = ev.pointerId;
+      if (typeof cv.setPointerCapture === "function") {
+        try { cv.setPointerCapture(ev.pointerId); } catch (_err) {}
+      }
+      var pt = toCanvasCoords(ev);
+      if (toolMode !== "drag") { activeShape = { kind: toolMode, color: drawColor, x1: pt.x, y1: pt.y, x2: pt.x, y2: pt.y }; return; }
+      dragLastX = pt.x; dragLastY = pt.y; dragTarget = hitsRainbow(pt.x, pt.y) ? "rainbow" : "hills"; cv.classList.add("dragging");
+    });
+    cv.addEventListener("pointermove", function (ev) {
+      if (activePointerId !== null && ev.pointerId !== activePointerId) return;
+      var pt = toCanvasCoords(ev);
+      if (activeShape) { activeShape.x2 = pt.x; activeShape.y2 = pt.y; return; }
+      if (!dragTarget) return;
+      var dx = pt.x - dragLastX, dy = pt.y - dragLastY;
+      dragLastX = pt.x; dragLastY = pt.y;
+      if (dragTarget === "rainbow") {
+        scene.cx = Math.max(120, Math.min(cv.width - 120, scene.cx + dx));
+        scene.cy = Math.max(160, Math.min(cv.height + 50, scene.cy + dy));
+      } else {
+        hillLift = Math.max(-22, Math.min(44, hillLift - dy * 0.45));
+        hillShift += dx * 0.012;
+      }
+    });
+    function finishPointer(ev) {
+      if (activePointerId !== null && ev && ev.pointerId !== activePointerId) return;
+      if (activePointerId !== null && typeof cv.releasePointerCapture === "function") {
+        try { cv.releasePointerCapture(activePointerId); } catch (_err) {}
+      }
+      activePointer
