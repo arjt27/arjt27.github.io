@@ -27,8 +27,8 @@
     .ver { font-size: 0.7rem; color: #c4b5fd; background: #2e1065; border: 1px solid #6d28d9; border-radius: 999px; padding: 2px 8px; }
     .daily-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; font-size: 0.78rem; color: #cbd5e1; text-align: left; }
     .daily-btn { background: #3b0764; color: #f8fafc; border: 1px solid #a78bfa; border-radius: 999px; padding: 5px 11px; font-size: 0.75rem; font-weight: 600; cursor: pointer; flex-shrink: 0; }
-    .row { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; width: 100%; min-height: 32px; }
-    .chip { background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 999px; padding: 6px 11px; font-size: 0.78rem; cursor: pointer; }
+    .row { display: flex; flex-wrap: nowrap; justify-content: space-between; gap: 6px; width: 100%; overflow-x: auto; }
+    .chip { flex: 1 1 0; white-space: nowrap; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 999px; padding: 6px 10px; font-size: 0.78rem; font-weight: 600; cursor: pointer; }
     .chip.on { background: #3b0764; border-color: #a78bfa; }
     .tool-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; padding: 7px 10px; }
     .tool-group { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
@@ -106,17 +106,10 @@
   <script>
   (function () {
     function $(id) { return document.getElementById(id); }
-    var capEl = $("cap");
-    function setCap(msg) { if (capEl) capEl.textContent = msg; }
-
-    window.addEventListener("error", function (ev) {
-      setCap("Script notice: " + (ev && ev.message ? ev.message : "unknown error"));
-    });
-
     var cv = $("cv");
-    if (!cv || typeof cv.getContext !== "function") { setCap("Canvas unavailable"); return; }
+    if (!cv || typeof cv.getContext !== "function") return;
     var ctx = cv.getContext("2d");
-    if (!ctx) { setCap("2D context unavailable"); return; }
+    if (!ctx) return;
 
     var CITIES = [
       { name: "New York", tzOffset: -5, lat: 40.71, lon: -74.01, temp: "", weather: "", code: 0 },
@@ -290,9 +283,7 @@
       var html = "";
       for (var idx = 0; idx < CITIES.length; idx++) {
         var c = CITIES[idx];
-        var parts = [c.weather, c.temp, getCityClock(c.tzOffset).label].filter(Boolean);
-        var meta = parts.join(" • ");
-        html += '<button type="button" class="chip' + (idx === cityIdx ? " on" : "") + '" data-idx="' + idx + '">' + c.name + (meta ? " · " + meta : "") + "</button>";
+        html += '<button type="button" class="chip' + (idx === cityIdx ? " on" : "") + '" data-idx="' + idx + '">' + c.name + "</button>";
       }
       box.innerHTML = html;
       var chips = box.querySelectorAll(".chip");
@@ -315,9 +306,11 @@
         hills: props.hills, trees: props.trees, plane: props.plane, hillRef: props.hillRef
       };
       var weatherText = [city.weather, city.temp, clk.label].filter(Boolean).join(", ");
-      setCap(weatherText
-        ? (isDaily ? "Daily " : "") + city.name + " (" + weatherText + ") • " + scene.paletteName
-        : (isDaily ? "Daily " : "") + city.name + " • " + scene.paletteName);
+      if ($("cap")) {
+        $("cap").textContent = weatherText
+          ? (isDaily ? "Daily " : "") + city.name + " (" + weatherText + ") | " + scene.paletteName
+          : (isDaily ? "Daily " : "") + city.name + " | " + scene.paletteName;
+      }
     }
 
     function generateRandomScene() {
@@ -327,117 +320,113 @@
     function enterFreeRoll(nextIdx) {
       cityIdx = typeof nextIdx === "number" && !isNaN(nextIdx) ? nextIdx : cityIdx;
       isDaily = false; hillLift = 0; hillShift = 0;
-      if ($("dailyLabel")) $("dailyLabel").textContent = "Free-roll mode · tap for today's seed";
+      if ($("dailyLabel")) $("dailyLabel").textContent = "Free-roll mode - tap for today's seed";
       renderCityChips();
       generateRandomScene();
     }
 
     function drawFrame() {
-      try {
-        var city = CITIES[cityIdx] || CITIES[0];
-        var grad = ctx.createLinearGradient(0, 0, 0, cv.height);
-        grad.addColorStop(0, scene.skyTop);
-        grad.addColorStop(1, scene.skyBot);
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, cv.width, cv.height);
+      var city = CITIES[cityIdx] || CITIES[0];
+      var grad = ctx.createLinearGradient(0, 0, 0, cv.height);
+      grad.addColorStop(0, scene.skyTop);
+      grad.addColorStop(1, scene.skyBot);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, cv.width, cv.height);
 
-        if (scene.isNight && scene.stars && scene.stars.length) {
-          for (var si = 0; si < scene.stars.length; si++) {
-            var st = scene.stars[si];
-            st.phase += st.twinkle;
-            var alpha = 0.35 + (0.5 + 0.5 * Math.sin(st.phase)) * 0.65;
-            ctx.fillStyle = "rgba(255, 251, 235, " + alpha.toFixed(2) + ")";
-            ctx.beginPath(); ctx.arc(st.x, st.y, st.radius, 0, Math.PI * 2); ctx.fill();
-          }
+      if (scene.isNight && scene.stars && scene.stars.length) {
+        for (var si = 0; si < scene.stars.length; si++) {
+          var st = scene.stars[si];
+          st.phase += st.twinkle;
+          var alpha = 0.35 + (0.5 + 0.5 * Math.sin(st.phase)) * 0.65;
+          ctx.fillStyle = "rgba(255, 251, 235, " + alpha.toFixed(2) + ")";
+          ctx.beginPath(); ctx.arc(st.x, st.y, st.radius, 0, Math.PI * 2); ctx.fill();
         }
+      }
 
+      ctx.save();
+      ctx.fillStyle = scene.isNight ? "rgba(248, 250, 252, 0.92)" : (city.code <= 2 ? "rgba(254, 240, 138, 0.94)" : "rgba(241, 245, 249, 0.88)");
+      ctx.beginPath(); ctx.arc(scene.orbX, scene.orbY, 28, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+
+      if (scene.plane) {
+        scene.plane.x += scene.plane.speed;
+        if (scene.plane.speed > 0 && scene.plane.x > cv.width + 75) scene.plane.x = -75;
+        else if (scene.plane.speed < 0 && scene.plane.x < -75) scene.plane.x = cv.width + 75;
         ctx.save();
-        ctx.fillStyle = scene.isNight ? "rgba(248, 250, 252, 0.92)" : (city.code <= 2 ? "rgba(254, 240, 138, 0.94)" : "rgba(241, 245, 249, 0.88)");
-        ctx.beginPath(); ctx.arc(scene.orbX, scene.orbY, 28, 0, Math.PI * 2); ctx.fill();
+        ctx.translate(scene.plane.x, scene.plane.y);
+        ctx.scale(scene.plane.scale * scene.plane.dir, scene.plane.scale);
+        ctx.fillStyle = "#f8fafc";
+        ctx.beginPath(); ctx.ellipse(0, 0, 16, 4, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(-10, -2); ctx.lineTo(-16, -9); ctx.lineTo(-5, -2); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#cbd5e1";
+        ctx.beginPath(); ctx.moveTo(-2, 0); ctx.lineTo(5, 7); ctx.lineTo(-6, 7); ctx.closePath(); ctx.fill();
         ctx.restore();
+      }
 
-        if (scene.plane) {
-          scene.plane.x += scene.plane.speed;
-          if (scene.plane.speed > 0 && scene.plane.x > cv.width + 75) scene.plane.x = -75;
-          else if (scene.plane.speed < 0 && scene.plane.x < -75) scene.plane.x = cv.width + 75;
+      var radius = scene.startRadius;
+      for (var ri = 0; ri < scene.colors.length; ri++) {
+        ctx.beginPath();
+        ctx.arc(scene.cx, scene.cy, radius, Math.PI, 0);
+        ctx.lineWidth = scene.bandWidth;
+        ctx.strokeStyle = scene.colors[ri];
+        ctx.lineCap = "round";
+        ctx.stroke();
+        radius -= scene.bandWidth - 1;
+      }
+
+      if (scene.clouds && scene.clouds.length) {
+        for (var cli = 0; cli < scene.clouds.length; cli++) {
+          var cl = scene.clouds[cli];
+          cl.x += cl.speed;
+          if (cl.x - 80 > cv.width) cl.x = -90;
           ctx.save();
-          ctx.translate(scene.plane.x, scene.plane.y);
-          ctx.scale(scene.plane.scale * scene.plane.dir, scene.plane.scale);
-          ctx.fillStyle = "#f8fafc";
-          ctx.beginPath(); ctx.ellipse(0, 0, 16, 4, 0, 0, Math.PI * 2); ctx.fill();
-          ctx.beginPath(); ctx.moveTo(-10, -2); ctx.lineTo(-16, -9); ctx.lineTo(-5, -2); ctx.closePath(); ctx.fill();
-          ctx.fillStyle = "#cbd5e1";
-          ctx.beginPath(); ctx.moveTo(-2, 0); ctx.lineTo(5, 7); ctx.lineTo(-6, 7); ctx.closePath(); ctx.fill();
+          ctx.translate(cl.x, cl.y);
+          ctx.scale(cl.scale, cl.scale);
+          ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+          ctx.strokeStyle = "rgba(148, 163, 184, 0.35)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(0, 0, 22, 0, Math.PI * 2);
+          ctx.arc(20, -7, 26, 0, Math.PI * 2);
+          ctx.arc(44, 0, 20, 0, Math.PI * 2);
+          ctx.arc(22, 8, 20, 0, Math.PI * 2);
+          ctx.fill(); ctx.stroke();
           ctx.restore();
         }
-
-        var radius = scene.startRadius;
-        for (var ri = 0; ri < scene.colors.length; ri++) {
-          ctx.beginPath();
-          ctx.arc(scene.cx, scene.cy, radius, Math.PI, 0);
-          ctx.lineWidth = scene.bandWidth;
-          ctx.strokeStyle = scene.colors[ri];
-          ctx.lineCap = "round";
-          ctx.stroke();
-          radius -= scene.bandWidth - 1;
-        }
-
-        if (scene.clouds && scene.clouds.length) {
-          for (var cli = 0; cli < scene.clouds.length; cli++) {
-            var cl = scene.clouds[cli];
-            cl.x += cl.speed;
-            if (cl.x - 80 > cv.width) cl.x = -90;
-            ctx.save();
-            ctx.translate(cl.x, cl.y);
-            ctx.scale(cl.scale, cl.scale);
-            ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
-            ctx.strokeStyle = "rgba(148, 163, 184, 0.35)";
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(0, 0, 22, 0, Math.PI * 2);
-            ctx.arc(20, -7, 26, 0, Math.PI * 2);
-            ctx.arc(44, 0, 20, 0, Math.PI * 2);
-            ctx.arc(22, 8, 20, 0, Math.PI * 2);
-            ctx.fill(); ctx.stroke();
-            ctx.restore();
-          }
-        }
-
-        drawBuildings(scene.period);
-        if (scene.hills && scene.hills.length) {
-          for (var hi = 0; hi < scene.hills.length; hi++) {
-            var h = scene.hills[hi];
-            ctx.beginPath();
-            ctx.moveTo(0, cv.height);
-            for (var x = 0; x <= cv.width; x += 16) ctx.lineTo(x, hillSurfaceY(h, x, hi));
-            ctx.lineTo(cv.width, cv.height);
-            ctx.closePath();
-            ctx.fillStyle = h.color;
-            ctx.fill();
-          }
-        }
-        if (scene.hillRef && scene.trees && scene.trees.length) {
-          for (var tri = 0; tri < scene.trees.length; tri++) {
-            var tr = scene.trees[tri];
-            ctx.save();
-            ctx.translate(tr.x, hillSurfaceY(scene.hillRef, tr.x, 1) + 2);
-            ctx.scale(tr.scale, tr.scale);
-            ctx.fillStyle = "#1e1b18";
-            ctx.fillRect(-2.5, -11, 5, 12);
-            ctx.fillStyle = tr.canopy;
-            ctx.beginPath();
-            ctx.arc(0, -17, 9.5, 0, Math.PI * 2);
-            ctx.arc(-6.5, -12.5, 7, 0, Math.PI * 2);
-            ctx.arc(6.5, -12.5, 7, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-          }
-        }
-        for (var di = 0; di < drawings.length; di++) renderSingleDrawing(drawings[di]);
-        if (activeShape) renderSingleDrawing(activeShape);
-      } catch (err) {
-        setCap("Draw notice: " + (err && err.message ? err.message : "canvas error"));
       }
+
+      drawBuildings(scene.period);
+      if (scene.hills && scene.hills.length) {
+        for (var hi = 0; hi < scene.hills.length; hi++) {
+          var h = scene.hills[hi];
+          ctx.beginPath();
+          ctx.moveTo(0, cv.height);
+          for (var x = 0; x <= cv.width; x += 16) ctx.lineTo(x, hillSurfaceY(h, x, hi));
+          ctx.lineTo(cv.width, cv.height);
+          ctx.closePath();
+          ctx.fillStyle = h.color;
+          ctx.fill();
+        }
+      }
+      if (scene.hillRef && scene.trees && scene.trees.length) {
+        for (var tri = 0; tri < scene.trees.length; tri++) {
+          var tr = scene.trees[tri];
+          ctx.save();
+          ctx.translate(tr.x, hillSurfaceY(scene.hillRef, tr.x, 1) + 2);
+          ctx.scale(tr.scale, tr.scale);
+          ctx.fillStyle = "#1e1b18";
+          ctx.fillRect(-2.5, -11, 5, 12);
+          ctx.fillStyle = tr.canopy;
+          ctx.beginPath();
+          ctx.arc(0, -17, 9.5, 0, Math.PI * 2);
+          ctx.arc(-6.5, -12.5, 7, 0, Math.PI * 2);
+          ctx.arc(6.5, -12.5, 7, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+      for (var di = 0; di < drawings.length; di++) renderSingleDrawing(drawings[di]);
+      if (activeShape) renderSingleDrawing(activeShape);
       window.requestAnimationFrame(drawFrame);
     }
 
@@ -465,7 +454,7 @@
 
     cv.addEventListener("pointerdown", function (ev) {
       activePointerId = ev.pointerId;
-      if (typeof cv.setPointerCapture === "function") { try { cv.setPointerCapture(ev.pointerId); } catch (_err) {} }
+      if (typeof cv.setPointerCapture === "function") { try { cv.setPointerCapture(ev.pointerId); } catch (e) {} }
       var pt = toCanvasCoords(ev);
       if (toolMode !== "drag") { activeShape = { kind: toolMode, color: drawColor, x1: pt.x, y1: pt.y, x2: pt.x, y2: pt.y }; return; }
       dragLastX = pt.x; dragLastY = pt.y; dragTarget = hitsRainbow(pt.x, pt.y) ? "rainbow" : "hills"; cv.classList.add("dragging");
@@ -487,7 +476,7 @@
     });
     function finishPointer(ev) {
       if (activePointerId !== null && ev && ev.pointerId !== activePointerId) return;
-      if (activePointerId !== null && typeof cv.releasePointerCapture === "function") { try { cv.releasePointerCapture(activePointerId); } catch (_err) {} }
+      if (activePointerId !== null && typeof cv.releasePointerCapture === "function") { try { cv.releasePointerCapture(activePointerId); } catch (e) {} }
       activePointerId = null;
       if (activeShape && Math.hypot(activeShape.x2 - activeShape.x1, activeShape.y2 - activeShape.y1) >= 4) drawings.push(activeShape);
       activeShape = null; dragTarget = null; cv.classList.remove("dragging");
@@ -529,7 +518,7 @@
 
     function nextSnack() {
       isDaily = false;
-      if ($("dailyLabel")) $("dailyLabel").textContent = "Free-roll mode · tap for today's seed";
+      if ($("dailyLabel")) $("dailyLabel").textContent = "Free-roll mode - tap for today's seed";
       if (!snackBag.length) {
         for (var bi = 0; bi < BASES.length; bi++) {
           for (var ti = 0; ti < TOPPINGS.length; ti++) {
@@ -558,7 +547,7 @@
         if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
           navigator.clipboard.writeText(addr).then(function () {
             if (statusEl) statusEl.textContent = "Wallet address copied";
-          }).catch(function () {
+          }, function () {
             if (statusEl) statusEl.textContent = "Select and copy the address manually";
           });
         } else {
@@ -566,7 +555,7 @@
             var ta = document.createElement("textarea");
             ta.value = addr; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove();
             if (statusEl) statusEl.textContent = "Wallet address copied";
-          } catch (_err) { if (statusEl) statusEl.textContent = "Select and copy the address manually"; }
+          } catch (e) { if (statusEl) statusEl.textContent = "Select and copy the address manually"; }
         }
       };
     }
@@ -574,7 +563,7 @@
     function hasPiSdk() { return Boolean(window.Pi && typeof window.Pi.init === "function" && typeof window.Pi.authenticate === "function"); }
     function initPiSdk() {
       if (!hasPiSdk()) return false;
-      try { window.Pi.init({ version: "2.0" }); return true; } catch (_err) { return false; }
+      try { window.Pi.init({ version: "2.0" }); return true; } catch (e) { return false; }
     }
     function syncPiAuthUI() {
       var statEl = $("piStat"), btnEl = $("piLoginBtn"), clearEl = $("piClearBtn");
@@ -595,7 +584,7 @@
         var timer = window.setTimeout(function () { if (!settled) { settled = true; reject(new Error("Pi sign-in timed out")); } }, timeoutMs);
         Promise.resolve().then(function () { return window.Pi.authenticate(["username"], function () {}); }).then(function (res) {
           if (!settled) { settled = true; window.clearTimeout(timer); resolve(res); }
-        }).catch(function (err) { if (!settled) { settled = true; window.clearTimeout(timer); reject(err); } });
+        }, function (err) { if (!settled) { settled = true; window.clearTimeout(timer); reject(err); } });
       });
     }
 
@@ -603,14 +592,14 @@
     if ($("piLoginBtn")) {
       $("piLoginBtn").onclick = function () {
         var statEl = $("piStat"), btnEl = $("piLoginBtn");
-        if (!initPiSdk()) { if (statEl) statEl.textContent = "Pi SDK not loaded — open in Pi Browser"; return; }
+        if (!initPiSdk()) { if (statEl) statEl.textContent = "Pi SDK not loaded - open in Pi Browser"; return; }
         if (btnEl) btnEl.disabled = true;
         if (statEl) statEl.textContent = "Signing in with Pi...";
         authenticateWithTimeout(12000).then(function (auth) {
           signedInUser = auth && auth.user && auth.user.username ? auth.user.username : "Pioneer";
           syncPiAuthUI();
-        }).catch(function (err) {
-          if (statEl) statEl.textContent = err && err.message === "Pi sign-in timed out" ? "Pi sign-in timed out — reopen in Pi Browser" : "Pi sign-in cancelled or unavailable";
+        }, function (err) {
+          if (statEl) statEl.textContent = err && err.message === "Pi sign-in timed out" ? "Pi sign-in timed out - reopen in Pi Browser" : "Pi sign-in cancelled or unavailable";
         }).then(function () { if (btnEl) btnEl.disabled = false; });
       };
     }
@@ -629,21 +618,21 @@
     var lons = CITIES.map(function (c) { return c.lon; }).join(",");
     if (typeof fetch === "function") {
       fetch("https://api.open-meteo.com/v1/forecast?latitude=" + lats + "&longitude=" + lons + "&current=temperature_2m,weather_code")
-        .then(function (res) { return res && res.ok ? res.json() : null; })
+        .then(function (res) { return res && res.ok ? res.json() : null; }, function () { return null; })
         .then(function (data) {
           if (!data) return;
           var list = Array.isArray(data) ? data : [data];
           for (var i = 0; i < list.length; i++) {
             var entry = list[i];
             if (entry && entry.current && CITIES[i]) {
-              CITIES[i].temp = Math.round(entry.current.temperature_2m) + "°C";
+              CITIES[i].temp = Math.round(entry.current.temperature_2m) + "C";
               CITIES[i].code = entry.current.weather_code;
               CITIES[i].weather = weatherLabel(entry.current.weather_code);
             }
           }
           renderCityChips();
           if (isDaily) applyDailyVibe(); else generateRandomScene();
-        }).catch(function () {});
+        }, function () {});
     }
   })();
   </script>
