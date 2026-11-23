@@ -53,6 +53,7 @@
     .auth-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .pi-btn { background: #4c1d95; color: #f8fafc; border: 1px solid #a78bfa; border-radius: 10px; padding: 7px 12px; font-size: 0.78rem; font-weight: 600; cursor: pointer; flex-shrink: 0; }
     .pi-btn.sub { background: #1e293b; border-color: #475569; color: #cbd5e1; }
+    .pi-btn.on { background: #14532d; border-color: #4ade80; color: #dcfce7; }
     #piStat { font-size: 0.78rem; color: #e2e8f0; word-break: break-word; }
     .wallet-box { margin-top: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 10px; background: #0f172a; border: 1px solid #334155; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.74rem; color: #fde68a; word-break: break-all; }
     .copy-note { font-size: 0.75rem; color: #94a3b8; margin-top: 6px; min-height: 1.1em; }
@@ -89,10 +90,11 @@
     <section class="box">
       <h2>About Rainbow and Bites</h2>
       <p>Welcome to <strong>Rainbow and Bites</strong>—a single-screen browser toy for a quick. Check New York, Chicago, and Los Angeles for live weather conditions and temperatures alongside local time skies, complete with rooftops, building silhouettes, a drifting plane, and trees along the hills. Drag right on the rainbow or hills to move them, or switch to Line, Oval, or Box mode to sketch your own lines and shapes across the skyscape before tapping for a fresh snack idea.</p>
-      <p>Pi Sign-In: optional sign-in via Pi Browser for a personal greeting.</p>
+      <p>Pi Sign-In: optional sign-in via Pi Browser for a personal greeting, with Sandbox toggle for testing.</p>
       <div class="auth-row">
         <span id="piStat">Guest mode (not signed in)</span>
         <div class="auth-actions">
+          <button class="pi-btn on" id="piSandboxBtn" type="button">Sandbox: ON</button>
           <button class="pi-btn" id="piLoginBtn" type="button">Sign in with Pi</button>
           <button class="pi-btn sub" id="piClearBtn" type="button" hidden>Clear</button>
         </div>
@@ -142,7 +144,7 @@
       { x: 816, w: 44, h: 56, roof: "pitched" }
     ];
 
-    var cityIdx = 0, snackBag = [], lastSnack = "", isDaily = true, signedInUser = "";
+    var cityIdx = 0, snackBag = [], lastSnack = "", isDaily = true, signedInUser = "", sandboxMode = true;
     var toolMode = "drag", drawColor = "#fef08a", drawings = [], activeShape = null, dragTarget = null;
     var dragLastX = 0, dragLastY = 0, hillLift = 0, hillShift = 0, activePointerId = null;
 
@@ -418,227 +420,3 @@
             ctx.translate(tr.x, hillSurfaceY(scene.hillRef, tr.x, 1) + 2);
             ctx.scale(tr.scale, tr.scale);
             ctx.fillStyle = "#1e1b18";
-            ctx.fillRect(-2.5, -11, 5, 12);
-            ctx.fillStyle = tr.canopy;
-            ctx.beginPath();
-            ctx.arc(0, -17, 9.5, 0, Math.PI * 2);
-            ctx.arc(-6.5, -12.5, 7, 0, Math.PI * 2);
-            ctx.arc(6.5, -12.5, 7, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-          }
-        }
-        for (var di = 0; di < drawings.length; di++) renderSingleDrawing(drawings[di]);
-        if (activeShape) renderSingleDrawing(activeShape);
-      } catch (_err) {}
-      window.requestAnimationFrame(drawFrame);
-    }
-
-    function setToolMode(nextMode) {
-      toolMode = nextMode;
-      var modes = ["drag", "line", "oval", "box"];
-      var ids = ["modeDrag", "modeLine", "modeOval", "modeBox"];
-      for (var i = 0; i < modes.length; i++) {
-        var el = $(ids[i]);
-        if (el) el.classList.toggle("on", modes[i] === nextMode);
-      }
-      cv.classList.toggle("draw-mode", nextMode !== "drag");
-    }
-    function toCanvasCoords(ev) {
-      var r = cv.getBoundingClientRect();
-      if (!r.width || !r.height) return { x: 0, y: 0 };
-      return { x: ((ev.clientX - r.left) / r.width) * cv.width, y: ((ev.clientY - r.top) / r.height) * cv.height };
-    }
-    function hitsRainbow(x, y) {
-      var dist = Math.hypot(x - scene.cx, y - scene.cy);
-      var outer = scene.startRadius + scene.bandWidth;
-      var inner = Math.max(16, scene.startRadius - scene.colors.length * (scene.bandWidth - 1) - scene.bandWidth);
-      return y <= scene.cy + 14 && dist >= inner && dist <= outer;
-    }
-
-    cv.addEventListener("pointerdown", function (ev) {
-      activePointerId = ev.pointerId;
-      if (typeof cv.setPointerCapture === "function") { try { cv.setPointerCapture(ev.pointerId); } catch (e) {} }
-      var pt = toCanvasCoords(ev);
-      if (toolMode !== "drag") { activeShape = { kind: toolMode, color: drawColor, x1: pt.x, y1: pt.y, x2: pt.x, y2: pt.y }; return; }
-      dragLastX = pt.x; dragLastY = pt.y; dragTarget = hitsRainbow(pt.x, pt.y) ? "rainbow" : "hills"; cv.classList.add("dragging");
-    });
-    cv.addEventListener("pointermove", function (ev) {
-      if (activePointerId !== null && ev.pointerId !== activePointerId) return;
-      var pt = toCanvasCoords(ev);
-      if (activeShape) { activeShape.x2 = pt.x; activeShape.y2 = pt.y; return; }
-      if (!dragTarget) return;
-      var dx = pt.x - dragLastX, dy = pt.y - dragLastY;
-      dragLastX = pt.x; dragLastY = pt.y;
-      if (dragTarget === "rainbow") {
-        scene.cx = Math.max(120, Math.min(cv.width - 120, scene.cx + dx));
-        scene.cy = Math.max(160, Math.min(cv.height + 50, scene.cy + dy));
-      } else {
-        hillLift = Math.max(-22, Math.min(44, hillLift - dy * 0.45));
-        hillShift += dx * 0.012;
-      }
-    });
-    function finishPointer(ev) {
-      if (activePointerId !== null && ev && ev.pointerId !== activePointerId) return;
-      if (activePointerId !== null && typeof cv.releasePointerCapture === "function") { try { cv.releasePointerCapture(activePointerId); } catch (e) {} }
-      activePointerId = null;
-      if (activeShape && Math.hypot(activeShape.x2 - activeShape.x1, activeShape.y2 - activeShape.y1) >= 4) drawings.push(activeShape);
-      activeShape = null; dragTarget = null; cv.classList.remove("dragging");
-    }
-    cv.addEventListener("pointerup", finishPointer);
-    cv.addEventListener("pointercancel", finishPointer);
-    cv.addEventListener("dblclick", function () { hillLift = 0; hillShift = 0; if (isDaily) applyDailyVibe(); else generateRandomScene(); });
-
-    if ($("modeDrag")) $("modeDrag").onclick = function () { setToolMode("drag"); };
-    if ($("modeLine")) $("modeLine").onclick = function () { setToolMode("line"); };
-    if ($("modeOval")) $("modeOval").onclick = function () { setToolMode("oval"); };
-    if ($("modeBox")) $("modeBox").onclick = function () { setToolMode("box"); };
-    var swatches = document.querySelectorAll(".swatch");
-    for (var swi = 0; swi < swatches.length; swi++) {
-      (function (sw) {
-        sw.onclick = function () {
-          drawColor = sw.getAttribute("data-col") || "#fef08a";
-          for (var k = 0; k < swatches.length; k++) swatches[k].classList.toggle("on", swatches[k] === sw);
-          if (toolMode === "drag") setToolMode("line");
-        };
-      })(swatches[swi]);
-    }
-    if ($("undoDrawBtn")) $("undoDrawBtn").onclick = function () { drawings.pop(); };
-    if ($("clearDrawBtn")) $("clearDrawBtn").onclick = function () { drawings = []; activeShape = null; };
-
-    function applyDailyVibe() {
-      isDaily = true; hillLift = 0; hillShift = 0;
-      var key = getDayKey();
-      var sr = createSeededRng(key);
-      cityIdx = Math.floor(sr() * CITIES.length) % CITIES.length;
-      var pal = PALETTES[Math.floor(sr() * PALETTES.length) % PALETTES.length];
-      var dailySnack = DAILY_SNACKS[Math.floor(sr() * DAILY_SNACKS.length) % DAILY_SNACKS.length];
-      lastSnack = dailySnack;
-      if ($("snack")) $("snack").textContent = "Daily bite: " + dailySnack;
-      if ($("dailyLabel")) $("dailyLabel").textContent = "Today's Sky & Bite (" + key + ")";
-      renderCityChips();
-      applyScene(pal, cv.width / 2 + (sr() * 100 - 50), cv.height - (sr() * 30 + 25), 19, sr() * 70 + 240, sr);
-    }
-
-    function nextSnack() {
-      isDaily = false;
-      if ($("dailyLabel")) $("dailyLabel").textContent = "Free-roll mode - tap for today's seed";
-      if (!snackBag.length) {
-        for (var bi = 0; bi < BASES.length; bi++) {
-          for (var ti = 0; ti < TOPPINGS.length; ti++) {
-            snackBag.push(BASES[bi] + " with " + TOPPINGS[ti]);
-            snackBag.push(pickRandom(FORMATS) + " of " + BASES[bi] + " + " + TOPPINGS[ti]);
-          }
-        }
-        for (var i = snackBag.length - 1; i > 0; i--) {
-          var j = randInt(i + 1);
-          var tmp = snackBag[i]; snackBag[i] = snackBag[j]; snackBag[j] = tmp;
-        }
-      }
-      var candidate = snackBag.pop();
-      if (candidate === lastSnack && snackBag.length) {
-        var idx2 = randInt(snackBag.length);
-        var tmp2 = candidate; candidate = snackBag[idx2]; snackBag[idx2] = tmp2;
-      }
-      lastSnack = candidate;
-      if ($("snack")) $("snack").textContent = "Snack idea: " + candidate;
-    }
-
-    if ($("copyWalletBtn")) {
-      $("copyWalletBtn").onclick = function () {
-        var addr = ($("piWalletAddr") && $("piWalletAddr").textContent) || "";
-        var statusEl = $("copyStatus");
-        if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
-          navigator.clipboard.writeText(addr).then(function () {
-            if (statusEl) statusEl.textContent = "Wallet address copied";
-          }, function () {
-            if (statusEl) statusEl.textContent = "Select and copy the address manually";
-          });
-        } else {
-          try {
-            var ta = document.createElement("textarea");
-            ta.value = addr; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove();
-            if (statusEl) statusEl.textContent = "Wallet address copied";
-          } catch (e) { if (statusEl) statusEl.textContent = "Select and copy the address manually"; }
-        }
-      };
-    }
-
-    function hasPiSdk() { return Boolean(window.Pi && typeof window.Pi.init === "function" && typeof window.Pi.authenticate === "function"); }
-    function initPiSdk() {
-      if (!hasPiSdk()) return false;
-      try { window.Pi.init({ version: "2.0" }); return true; } catch (e) { return false; }
-    }
-    function syncPiAuthUI() {
-      var statEl = $("piStat"), btnEl = $("piLoginBtn"), clearEl = $("piClearBtn");
-      if (signedInUser) {
-        if (statEl) statEl.textContent = "Signed in as @" + signedInUser;
-        if (btnEl) btnEl.textContent = "Refresh Pi Sign-In";
-        if (clearEl) clearEl.hidden = false;
-      } else {
-        if (statEl) statEl.textContent = "Guest mode (not signed in)";
-        if (btnEl) btnEl.textContent = "Sign in with Pi";
-        if (clearEl) clearEl.hidden = true;
-      }
-    }
-    function authenticateWithTimeout(ms) {
-      var timeoutMs = ms || 12000;
-      return new Promise(function (resolve, reject) {
-        var settled = false;
-        var timer = window.setTimeout(function () { if (!settled) { settled = true; reject(new Error("Pi sign-in timed out")); } }, timeoutMs);
-        Promise.resolve().then(function () { return window.Pi.authenticate(["username"], function () {}); }).then(function (res) {
-          if (!settled) { settled = true; window.clearTimeout(timer); resolve(res); }
-        }, function (err) { if (!settled) { settled = true; window.clearTimeout(timer); reject(err); } });
-      });
-    }
-
-    initPiSdk();
-    if ($("piLoginBtn")) {
-      $("piLoginBtn").onclick = function () {
-        var statEl = $("piStat"), btnEl = $("piLoginBtn");
-        if (!initPiSdk()) { if (statEl) statEl.textContent = "Pi SDK not loaded - open in Pi Browser"; return; }
-        if (btnEl) btnEl.disabled = true;
-        if (statEl) statEl.textContent = "Signing in with Pi...";
-        authenticateWithTimeout(12000).then(function (auth) {
-          signedInUser = auth && auth.user && auth.user.username ? auth.user.username : "Pioneer";
-          syncPiAuthUI();
-        }, function (err) {
-          if (statEl) statEl.textContent = err && err.message === "Pi sign-in timed out" ? "Pi sign-in timed out - reopen in Pi Browser" : "Pi sign-in cancelled or unavailable";
-        }).then(function () { if (btnEl) btnEl.disabled = false; });
-      };
-    }
-    if ($("piClearBtn")) $("piClearBtn").onclick = function () { signedInUser = ""; syncPiAuthUI(); };
-    if ($("dailyBtn")) $("dailyBtn").onclick = applyDailyVibe;
-    if ($("gen")) $("gen").onclick = function () { enterFreeRoll((cityIdx + 1) % CITIES.length); };
-    if ($("sBtn")) $("sBtn").onclick = nextSnack;
-    if ($("snack")) $("snack").onclick = nextSnack;
-
-    syncPiAuthUI();
-    renderCityChips();
-    applyDailyVibe();
-    drawFrame();
-
-    var lats = CITIES.map(function (c) { return c.lat; }).join(",");
-    var lons = CITIES.map(function (c) { return c.lon; }).join(",");
-    if (typeof fetch === "function") {
-      fetch("https://api.open-meteo.com/v1/forecast?latitude=" + lats + "&longitude=" + lons + "&current=temperature_2m,weather_code")
-        .then(function (res) { return res && res.ok ? res.json() : null; }, function () { return null; })
-        .then(function (data) {
-          if (!data) return;
-          var list = Array.isArray(data) ? data : [data];
-          for (var i = 0; i < list.length; i++) {
-            var entry = list[i];
-            if (entry && entry.current && CITIES[i]) {
-              CITIES[i].temp = Math.round(entry.current.temperature_2m) + "C";
-              CITIES[i].code = entry.current.weather_code;
-              CITIES[i].weather = weatherLabel(entry.current.weather_code);
-            }
-          }
-          renderCityChips();
-          if (isDaily) applyDailyVibe(); else generateRandomScene();
-        }, function () {});
-    }
-  })();
-  </script>
-</body>
-</html>
