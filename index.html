@@ -394,29 +394,4 @@
             ctx.arc(0, 0, 22, 0, Math.PI * 2);
             ctx.arc(20, -7, 26, 0, Math.PI * 2);
             ctx.arc(44, 0, 20, 0, Math.PI * 2);
-            ctx.arc(22, 8, 20, 0, Math.PI * 2);
-            ctx.fill(); ctx.stroke();
-            ctx.restore();
-          }
-        }
-
-        drawBuildings(scene.period);
-        if (scene.hills && scene.hills.length) {
-          for (var hi = 0; hi < scene.hills.length; hi++) {
-            var h = scene.hills[hi];
-            ctx.beginPath();
-            ctx.moveTo(0, cv.height);
-            for (var x = 0; x <= cv.width; x += 16) ctx.lineTo(x, hillSurfaceY(h, x, hi));
-            ctx.lineTo(cv.width, cv.height);
-            ctx.closePath();
-            ctx.fillStyle = h.color;
-            ctx.fill();
-          }
-        }
-        if (scene.hillRef && scene.trees && scene.trees.length) {
-          for (var tri = 0; tri < scene.trees.length; tri++) {
-            var tr = scene.trees[tri];
-            ctx.save();
-            ctx.translate(tr.x, hillSurfaceY(scene.hillRef, tr.x, 1) + 2);
-            ctx.scale(tr.scale, tr.scale);
-            ctx.fillStyle = "#1e1b18";
+            ctx.arc(22, 8,
