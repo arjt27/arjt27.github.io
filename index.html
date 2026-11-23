@@ -1,5 +1,5 @@
 <!--
-  Rainbow and Bites (v0.132)
+  Rainbow and Bites (v0.133)
   Free to use and share under the GNU General Public License (GPL).
   If you reuse or adapt this code, please keep all social links intact.
 -->
@@ -224,7 +224,7 @@
       <strong>GNU General Public License (GPL):</strong> Free to use &amp; share — please keep all social links intact if reused.
     </header>
 
-    <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.132</span></div>
+    <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.133</span></div>
 
     <div class="daily-bar">
       <span id="dailyLabel">Daily Sky &amp; Bite</span>
@@ -240,6 +240,8 @@
       <button id="gen" type="button">New Rainbow</button>
       <button id="sBtn" type="button">Random Snack</button>
     </div>
+
+    <div id="payStat" style="font-size:0.78rem;color:#cbd5e1;min-height:1.2em;">Ready · 1st extra rainbow is free, then 0.1 Pi each</div>
 
     <section class="box">
       <h2>Pi Sign-In (Testnet)</h2>
@@ -308,6 +310,8 @@
     let snackBag = [];
     let lastSnack = "";
     let isDaily = true;
+    let freeRainbowUsed = false;
+    let paymentInFlight = false;
     let signedInUser = "";
     let sandboxMode = true;
     let scene = {
@@ -575,6 +579,7 @@
     // --- C. Daily Vibe & Snack Generator ---
     function applyDailyVibe() {
       isDaily = true;
+      freeRainbowUsed = false;
       const key = getDayKey();
       const sr = createSeededRng(key);
       cityIdx = Math.floor(sr() * CITIES.length);
@@ -587,6 +592,7 @@
 
       if ($("snack")) $("snack").textContent = "Daily bite: " + dailySnack;
       if ($("dailyLabel")) $("dailyLabel").textContent = `Today's Sky & Bite (${key})`;
+      if ($("payStat")) $("payStat").textContent = "Ready · 1st extra rainbow is free, then 0.1 Pi each";
       renderCityChips();
       applyScene(pal, cx, cy, 19, startRadius, sr);
     }
@@ -621,7 +627,7 @@
       if ($("snack")) $("snack").textContent = "Snack idea: " + candidate;
     }
 
-    // --- D. Pi Sign-In, Events & Live Weather Fetch ---
+    // --- D. Pi Sign-In, Payments, Events & Live Weather Fetch ---
     function hasPiSdk() {
       return Boolean(window.Pi && typeof window.Pi.init === "function" && typeof window.Pi.authenticate === "function");
     }
@@ -655,7 +661,7 @@
 
     initPiSdk();
 
-    function authenticateWithTimeout(ms = 12000) {
+    function authenticateWithTimeout(scopes = ["username"], ms = 12000) {
       return new Promise((resolve, reject) => {
         let settled = false;
         const timer = window.setTimeout(() => {
@@ -666,11 +672,17 @@
         }, ms);
 
         Promise.resolve()
-          .then(() => window.Pi.authenticate(["username"], () => {}))
+          .then(() => window.Pi.authenticate(scopes, (payment) => {
+            console.log("Incomplete payment found:", payment);
+          }))
           .then((res) => {
             if (!settled) {
               settled = true;
               window.clearTimeout(timer);
+              if (res && res.user && res.user.username) {
+                signedInUser = res.user.username;
+                syncPiAuthUI();
+              }
               resolve(res);
             }
           })
@@ -681,6 +693,43 @@
               reject(err);
             }
           });
+      });
+    }
+
+    function createPointOnePiPayment(memo = "Extra rainbow on Rainbow and Bites") {
+      return new Promise((resolve, reject) => {
+        if (!window.Pi || typeof window.Pi.createPayment !== "function") {
+          reject(new Error("Pi payments unavailable in this browser"));
+          return;
+        }
+        window.Pi.createPayment(
+          {
+            amount: 0.1,
+            memo,
+            metadata: { app: "rainbow-and-bites", version: "v0.133" }
+          },
+          {
+            onReadyForServerApproval: async (paymentId) => {
+              const resp = await fetch("/api/pi/approve", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ paymentId })
+              });
+              if (!resp.ok) throw new Error("Server approval failed");
+            },
+            onReadyForServerCompletion: async (paymentId, txid) => {
+              const resp = await fetch("/api/pi/complete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ paymentId, txid })
+              });
+              if (!resp.ok) throw new Error("Server completion failed");
+              resolve({ paymentId, txid });
+            },
+            onCancel: () => reject(new Error("Payment cancelled")),
+            onError: (err) => reject(err || new Error("Payment failed"))
+          }
+        );
       });
     }
 
@@ -703,7 +752,7 @@
         try {
           if (btnEl) btnEl.disabled = true;
           if (statEl) statEl.textContent = "Signing in with Pi...";
-          const auth = await authenticateWithTimeout(12000);
+          const auth = await authenticateWithTimeout(["username"], 12000);
           signedInUser = auth && auth.user && auth.user.username ? auth.user.username : "Pioneer";
           syncPiAuthUI();
         } catch (err) {
@@ -727,7 +776,32 @@
 
     if ($("dailyBtn")) $("dailyBtn").onclick = applyDailyVibe;
     if ($("gen")) {
-      $("gen").onclick = () => {
+      $("gen").onclick = async () => {
+        if (paymentInFlight) return;
+        const payStat = $("payStat");
+
+        if (freeRainbowUsed) {
+          if (!initPiSdk()) {
+            if (payStat) payStat.textContent = "Open in Pi Browser to pay 0.1 Pi for another rainbow";
+            return;
+          }
+          try {
+            paymentInFlight = true;
+            if (payStat) payStat.textContent = "Requesting 0.1 Pi payment...";
+            await authenticateWithTimeout(["username", "payments"], 12000);
+            await createPointOnePiPayment("New rainbow on Rainbow and Bites (0.1 Pi)");
+            if (payStat) payStat.textContent = "0.1 Pi payment completed — new rainbow unlocked!";
+          } catch (err) {
+            if (payStat) payStat.textContent = (err && err.message) || "0.1 Pi payment not completed";
+            return;
+          } finally {
+            paymentInFlight = false;
+          }
+        } else {
+          freeRainbowUsed = true;
+          if (payStat) payStat.textContent = "Free rainbow used · next new rainbow is 0.1 Pi";
+        }
+
         cityIdx = (cityIdx + 1) % CITIES.length;
         isDaily = false;
         if ($("dailyLabel")) $("dailyLabel").textContent = "Free-roll mode · tap for today's seed";
