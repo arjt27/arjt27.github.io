@@ -1,5 +1,5 @@
 <!--
-  Rainbow and Bites (v0.139)
+  Rainbow and Bites (v0.140)
   Free to use and share under the GNU General Public License (GPL).
   If you reuse or adapt this code, please keep all social links intact.
 -->
@@ -250,7 +250,7 @@
       <strong>GNU General Public License (GPL):</strong> Free to use &amp; share — please keep all social links intact if reused.
     </header>
 
-    <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.139</span></div>
+    <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.140</span></div>
 
     <div class="daily-bar">
       <span id="dailyLabel">Daily Sky &amp; Bite</span>
@@ -309,9 +309,9 @@
 
     // --- A. Data & Randomness Helpers ---
     const CITIES = [
-      { name: "New York", tz: "America/New_York", lat: 40.71, lon: -74.01, temp: "", weather: "", code: 0 },
-      { name: "Chicago", tz: "America/Chicago", lat: 41.88, lon: -87.63, temp: "", weather: "", code: 0 },
-      { name: "Los Angeles", tz: "America/Los_Angeles", lat: 34.05, lon: -118.24, temp: "", weather: "", code: 0 }
+      { name: "New York", tzOffset: -5, lat: 40.71, lon: -74.01, temp: "", weather: "", code: 0 },
+      { name: "Chicago", tzOffset: -6, lat: 41.88, lon: -87.63, temp: "", weather: "", code: 0 },
+      { name: "Los Angeles", tzOffset: -8, lat: 34.05, lon: -118.24, temp: "", weather: "", code: 0 }
     ];
     const PALETTES = [
       ["Classic", ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#8b5cf6"]],
@@ -345,14 +345,18 @@
     let isDaily = true;
     let signedInUser = "";
     let sandboxMode = true;
-    let dragTarget = null; // "rainbow" | "hills" | null
+    let dragTarget = null;
     let dragLastX = 0;
     let dragLastY = 0;
-    let hillLiftOffset = 0;
-    let hillPhaseShift = 0;
+    let hillLift = 0;
+    let hillShift = 0;
     let scene = {
       paletteName: "Classic",
       colors: PALETTES[0][1],
+      skyTop: "#0284c7",
+      skyBot: "#38bdf8",
+      isNight: false,
+      timeLabel: "",
       cx: 440,
       cy: 420,
       bandWidth: 19,
@@ -363,7 +367,7 @@
       stars: [],
       hills: [],
       trees: [],
-      plane: { x: -80, y: 92, speed: 0.9, dir: 1, scale: 0.95 }
+      plane: { x: -70, y: 84, speed: 0.85, dir: 1, scale: 0.9 }
     };
 
     function randInt(max) {
@@ -412,40 +416,19 @@
     }
 
     // --- B. City Time, Weather & Skyscape Rendering ---
-    function getCityHour(tz) {
-      try {
-        const parts = new Intl.DateTimeFormat("en-US", {
-          timeZone: tz,
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false
-        }).formatToParts(new Date());
-        const h = Number(parts.find((p) => p.type === "hour")?.value ?? 12);
-        const m = Number(parts.find((p) => p.type === "minute")?.value ?? 0);
-        return (h % 24) + m / 60;
-      } catch {
-        const now = new Date();
-        return now.getHours() + now.getMinutes() / 60;
-      }
-    }
-
-    function getCityTimeLabel(tz) {
-      try {
-        return new Intl.DateTimeFormat("en-US", {
-          timeZone: tz,
-          hour: "numeric",
-          minute: "2-digit"
-        }).format(new Date());
-      } catch {
-        return "";
-      }
-    }
-
-    function getTimePeriod(hour) {
-      if (hour >= 6 && hour < 8.5) return "dawn";
-      if (hour >= 8.5 && hour < 17) return "day";
-      if (hour >= 17 && hour < 20) return "dusk";
-      return "night";
+    function getCityClock(tzOffset) {
+      const now = new Date();
+      const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+      const local = new Date(utcMs + tzOffset * 3600000);
+      const hour = local.getHours() + local.getMinutes() / 60;
+      const h12 = local.getHours() % 12 || 12;
+      const mins = String(local.getMinutes()).padStart(2, "0");
+      const ampm = local.getHours() >= 12 ? "PM" : "AM";
+      let period = "day";
+      if (hour >= 6 && hour < 8.5) period = "dawn";
+      else if (hour >= 17 && hour < 20) period = "dusk";
+      else if (hour < 6 || hour >= 20) period = "night";
+      return { hour, period, label: `${h12}:${mins} ${ampm}` };
     }
 
     function weatherLabel(code) {
@@ -461,25 +444,23 @@
       return "Thunderstorm";
     }
 
-    function skyGradientColors(code, tz) {
-      const period = getTimePeriod(getCityHour(tz));
+    function computeSkyPalette(code, period) {
       if (period === "night") {
-        if (code <= 2) return ["#020617", "#1e1b4b"];
-        if (code <= 48) return ["#0f172a", "#1e293b"];
-        return ["#090d16", "#172554"];
+        if (code <= 2) return ["#020617", "#1e1b4b", true];
+        if (code <= 48) return ["#0f172a", "#1e293b", true];
+        return ["#090d16", "#172554", true];
       }
       if (period === "dawn" || period === "dusk") {
-        if (code <= 2) return ["#4c1d95", "#f97316"];
-        if (code <= 48) return ["#334155", "#c2410c"];
-        return ["#1e293b", "#7c2d12"];
+        if (code <= 2) return ["#4c1d95", "#f97316", false];
+        if (code <= 48) return ["#334155", "#c2410c", false];
+        return ["#1e293b", "#7c2d12", false];
       }
-      if (code <= 2) return ["#0284c7", "#38bdf8"];
-      if (code <= 48) return ["#334155", "#64748b"];
-      return ["#1e3a8a", "#0f172a"];
+      if (code <= 2) return ["#0284c7", "#38bdf8", false];
+      if (code <= 48) return ["#334155", "#64748b", false];
+      return ["#1e3a8a", "#0f172a", false];
     }
 
-    function buildSkyscapeProps(rngFn, weatherCode, tz) {
-      const period = getTimePeriod(getCityHour(tz));
+    function buildSkyscapeProps(rngFn, weatherCode, period) {
       const cloudCount = weatherCode <= 2 ? 3 : weatherCode <= 48 ? 5 : 4;
       const clouds = [];
       for (let i = 0; i < cloudCount; i++) {
@@ -520,26 +501,19 @@
       ];
 
       const frontHill = hills[1];
-      const treePositions = [0.14, 0.23, 0.74, 0.85];
-      const trees = treePositions.map((frac, idx) => {
-        const x = cv.width * frac + (rngFn() * 24 - 12);
-        const groundY = cv.height - frontHill.baseH - Math.sin(x * frontHill.freq + frontHill.offset) * frontHill.amp;
-        return {
-          x,
-          groundY,
-          scale: 0.78 + rngFn() * 0.34 + (idx % 2) * 0.08,
-          trunkColor: "#1e1b18",
-          canopyColor: period === "night" ? "#064e3b" : "#14532d"
-        };
-      });
+      const trees = [0.14, 0.24, 0.76, 0.86].map((frac, idx) => ({
+        x: cv.width * frac + (rngFn() * 20 - 10),
+        scale: 0.8 + rngFn() * 0.3 + (idx % 2) * 0.06,
+        canopy: period === "night" ? "#064e3b" : "#15803d"
+      }));
 
       const dir = rngFn() < 0.5 ? 1 : -1;
       const plane = {
-        x: dir === 1 ? -70 : cv.width + 70,
-        y: 66 + rngFn() * 68,
-        speed: (0.75 + rngFn() * 0.55) * dir,
+        x: dir === 1 ? -65 : cv.width + 65,
+        y: 68 + rngFn() * 60,
+        speed: (0.7 + rngFn() * 0.45) * dir,
         dir,
-        scale: 0.85 + rngFn() * 0.25
+        scale: 0.85
       };
 
       return {
@@ -549,28 +523,21 @@
         stars,
         hills,
         trees,
-        plane
+        plane,
+        hillRef: frontHill
       };
     }
 
-    function drawOrb(x, y, tz, weatherCode) {
-      const period = getTimePeriod(getCityHour(tz));
-      const isNight = period === "night";
+    function drawOrb(x, y, isNight, weatherCode) {
       ctx.save();
       ctx.fillStyle = isNight
         ? "rgba(248, 250, 252, 0.92)"
         : weatherCode <= 2
-          ? "rgba(254, 240, 138, 0.95)"
-          : "rgba(253, 224, 71, 0.78)";
+          ? "rgba(254, 240, 138, 0.94)"
+          : "rgba(241, 245, 249, 0.88)";
       ctx.beginPath();
       ctx.arc(x, y, 28, 0, Math.PI * 2);
       ctx.fill();
-      if (isNight) {
-        ctx.fillStyle = "rgba(15, 23, 42, 0.25)";
-        ctx.beginPath();
-        ctx.arc(x + 8, y - 4, 23, 0, Math.PI * 2);
-        ctx.fill();
-      }
       ctx.restore();
     }
 
@@ -578,34 +545,23 @@
       ctx.save();
       ctx.translate(plane.x, plane.y);
       ctx.scale(plane.scale * plane.dir, plane.scale);
-
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(-22, 0);
-      ctx.lineTo(-56, 0);
-      ctx.stroke();
-
       ctx.fillStyle = "#f8fafc";
       ctx.beginPath();
-      ctx.ellipse(0, 0, 18, 4.5, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, 16, 4, 0, 0, Math.PI * 2);
       ctx.fill();
-
       ctx.beginPath();
-      ctx.moveTo(-11, -2);
-      ctx.lineTo(-18, -10);
-      ctx.lineTo(-6, -2);
+      ctx.moveTo(-10, -2);
+      ctx.lineTo(-16, -9);
+      ctx.lineTo(-5, -2);
       ctx.closePath();
       ctx.fill();
-
       ctx.fillStyle = "#cbd5e1";
       ctx.beginPath();
-      ctx.moveTo(-3, 0);
-      ctx.lineTo(5, 8);
-      ctx.lineTo(-7, 8);
+      ctx.moveTo(-2, 0);
+      ctx.lineTo(5, 7);
+      ctx.lineTo(-6, 7);
       ctx.closePath();
       ctx.fill();
-
       ctx.restore();
     }
 
@@ -626,9 +582,9 @@
       ctx.restore();
     }
 
-    function getHillY(h, x, idx) {
-      const lift = idx === 1 ? hillLiftOffset : hillLiftOffset * 0.55;
-      const shift = idx === 1 ? hillPhaseShift : hillPhaseShift * 0.5;
+    function hillSurfaceY(h, x, layerIdx) {
+      const lift = layerIdx === 1 ? hillLift : hillLift * 0.5;
+      const shift = layerIdx === 1 ? hillShift : hillShift * 0.5;
       return cv.height - h.baseH - lift - Math.sin(x * h.freq + h.offset + shift) * h.amp;
     }
 
@@ -637,8 +593,7 @@
         ctx.beginPath();
         ctx.moveTo(0, cv.height);
         for (let x = 0; x <= cv.width; x += 16) {
-          const y = getHillY(h, x, idx);
-          ctx.lineTo(x, y);
+          ctx.lineTo(x, hillSurfaceY(h, x, idx));
         }
         ctx.lineTo(cv.width, cv.height);
         ctx.closePath();
@@ -647,25 +602,21 @@
       });
     }
 
-    function drawTrees(trees, frontHill, idx) {
+    function drawTrees(trees, frontHill) {
+      if (!frontHill || !trees) return;
       for (const tr of trees) {
-        const baseY = frontHill
-          ? getHillY(frontHill, tr.x, idx) + 3
-          : tr.groundY;
+        const baseY = hillSurfaceY(frontHill, tr.x, 1) + 2;
         ctx.save();
         ctx.translate(tr.x, baseY);
         ctx.scale(tr.scale, tr.scale);
-
-        ctx.fillStyle = tr.trunkColor;
-        ctx.fillRect(-2.5, -12, 5, 13);
-
-        ctx.fillStyle = tr.canopyColor;
+        ctx.fillStyle = "#1e1b18";
+        ctx.fillRect(-2.5, -11, 5, 12);
+        ctx.fillStyle = tr.canopy;
         ctx.beginPath();
-        ctx.arc(0, -18, 10, 0, Math.PI * 2);
-        ctx.arc(-7, -13, 7.5, 0, Math.PI * 2);
-        ctx.arc(7, -13, 7.5, 0, Math.PI * 2);
+        ctx.arc(0, -17, 9.5, 0, Math.PI * 2);
+        ctx.arc(-6.5, -12.5, 7, 0, Math.PI * 2);
+        ctx.arc(6.5, -12.5, 7, 0, Math.PI * 2);
         ctx.fill();
-
         ctx.restore();
       }
     }
@@ -674,8 +625,8 @@
       const box = $("wx");
       if (!box) return;
       box.innerHTML = CITIES.map((c, idx) => {
-        const localTime = getCityTimeLabel(c.tz);
-        const meta = [c.weather, c.temp, localTime].filter(Boolean).join(" • ");
+        const clk = getCityClock(c.tzOffset);
+        const meta = [c.weather, c.temp, clk.label].filter(Boolean).join(" • ");
         const active = idx === cityIdx ? " on" : "";
         return `<button type="button" class="chip${active}" data-idx="${idx}">${c.name}${meta ? " · " + meta : ""}</button>`;
       }).join("");
@@ -684,8 +635,8 @@
         btn.onclick = () => {
           cityIdx = Number(btn.dataset.idx);
           isDaily = false;
-          hillLiftOffset = 0;
-          hillPhaseShift = 0;
+          hillLift = 0;
+          hillShift = 0;
           if ($("dailyLabel")) $("dailyLabel").textContent = "Free-roll mode · tap for today's seed";
           renderCityChips();
           generateRandomScene();
@@ -695,19 +646,24 @@
 
     function applyScene(paletteTuple, cx, cy, bandWidth, startRadius, rngFn) {
       const city = CITIES[cityIdx] || CITIES[0];
+      const clk = getCityClock(city.tzOffset);
+      const [skyTop, skyBot, isNight] = computeSkyPalette(city.code, clk.period);
       const [paletteName, colors] = paletteTuple;
-      const props = buildSkyscapeProps(rngFn || (() => randRange(0, 1)), city.code, city.tz);
+      const props = buildSkyscapeProps(rngFn || (() => randRange(0, 1)), city.code, clk.period);
       scene = {
         paletteName,
         colors,
+        skyTop,
+        skyBot,
+        isNight,
+        timeLabel: clk.label,
         cx,
         cy,
         bandWidth,
         startRadius,
         ...props
       };
-      const timeLabel = getCityTimeLabel(city.tz);
-      const weatherText = [city.weather, city.temp, timeLabel].filter(Boolean).join(", ");
+      const weatherText = [city.weather, city.temp, clk.label].filter(Boolean).join(", ");
       const prefix = isDaily ? "Daily " : "";
       if ($("cap")) {
         $("cap").textContent = weatherText
@@ -726,15 +682,13 @@
 
     function drawFrame() {
       const city = CITIES[cityIdx] || CITIES[0];
-      const [topCol, botCol] = skyGradientColors(city.code, city.tz);
-      const period = getTimePeriod(getCityHour(city.tz));
       const grad = ctx.createLinearGradient(0, 0, 0, cv.height);
-      grad.addColorStop(0, topCol);
-      grad.addColorStop(1, botCol);
+      grad.addColorStop(0, scene.skyTop);
+      grad.addColorStop(1, scene.skyBot);
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, cv.width, cv.height);
 
-      if (period === "night" || (period === "dusk" && city.code <= 2)) {
+      if (scene.isNight) {
         for (const st of scene.stars) {
           st.phase += st.twinkle;
           const alpha = 0.35 + (0.5 + 0.5 * Math.sin(st.phase)) * 0.65;
@@ -745,14 +699,14 @@
         }
       }
 
-      drawOrb(scene.orbX, scene.orbY, city.tz, city.code);
+      drawOrb(scene.orbX, scene.orbY, scene.isNight, city.code);
 
       if (scene.plane) {
         scene.plane.x += scene.plane.speed;
-        if (scene.plane.speed > 0 && scene.plane.x > cv.width + 80) {
-          scene.plane.x = -80;
-        } else if (scene.plane.speed < 0 && scene.plane.x < -80) {
-          scene.plane.x = cv.width + 80;
+        if (scene.plane.speed > 0 && scene.plane.x > cv.width + 75) {
+          scene.plane.x = -75;
+        } else if (scene.plane.speed < 0 && scene.plane.x < -75) {
+          scene.plane.x = cv.width + 75;
         }
         drawPlane(scene.plane);
       }
@@ -775,14 +729,12 @@
       }
 
       drawHills(scene.hills);
-      if (scene.hills && scene.hills[1]) {
-        drawTrees(scene.trees || [], scene.hills[1], 1);
-      }
+      drawTrees(scene.trees, scene.hillRef);
       window.requestAnimationFrame(drawFrame);
     }
 
-    // --- C. Interactive Rainbow & Hills Controls ---
-    function canvasPointFromEvent(ev) {
+    // --- C. Interactive Rainbow & Hills Drag ---
+    function toCanvasCoords(ev) {
       const rect = cv.getBoundingClientRect();
       if (!rect.width || !rect.height) return { x: 0, y: 0 };
       return {
@@ -791,59 +743,45 @@
       };
     }
 
-    function isNearRainbow(px, py) {
-      const dx = px - scene.cx;
-      const dy = py - scene.cy;
-      const dist = Math.hypot(dx, dy);
-      const outerR = scene.startRadius + scene.bandWidth;
-      const innerR = Math.max(20, scene.startRadius - scene.colors.length * (scene.bandWidth - 1) - scene.bandWidth);
-      return py <= scene.cy + 16 && dist >= innerR && dist <= outerR;
+    function hitsRainbow(x, y) {
+      const dist = Math.hypot(x - scene.cx, y - scene.cy);
+      const outer = scene.startRadius + scene.bandWidth;
+      const inner = Math.max(16, scene.startRadius - scene.colors.length * (scene.bandWidth - 1) - scene.bandWidth);
+      return y <= scene.cy + 14 && dist >= inner && dist <= outer;
     }
 
     cv.addEventListener("pointerdown", (ev) => {
-      const pt = canvasPointFromEvent(ev);
+      const pt = toCanvasCoords(ev);
       dragLastX = pt.x;
       dragLastY = pt.y;
-      if (isNearRainbow(pt.x, pt.y)) {
-        dragTarget = "rainbow";
-      } else {
-        dragTarget = "hills";
-      }
+      dragTarget = hitsRainbow(pt.x, pt.y) ? "rainbow" : "hills";
       cv.classList.add("dragging");
-      try { cv.setPointerCapture(ev.pointerId); } catch {}
     });
 
-    cv.addEventListener("pointermove", (ev) => {
+    window.addEventListener("pointermove", (ev) => {
       if (!dragTarget) return;
-      const pt = canvasPointFromEvent(ev);
+      const pt = toCanvasCoords(ev);
       const dx = pt.x - dragLastX;
       const dy = pt.y - dragLastY;
       dragLastX = pt.x;
       dragLastY = pt.y;
-
       if (dragTarget === "rainbow") {
         scene.cx = Math.max(120, Math.min(cv.width - 120, scene.cx + dx));
-        scene.cy = Math.max(160, Math.min(cv.height + 60, scene.cy + dy));
-      } else if (dragTarget === "hills") {
-        hillLiftOffset = Math.max(-24, Math.min(48, hillLiftOffset - dy * 0.45));
-        hillPhaseShift += dx * 0.012;
+        scene.cy = Math.max(160, Math.min(cv.height + 50, scene.cy + dy));
+      } else {
+        hillLift = Math.max(-22, Math.min(44, hillLift - dy * 0.45));
+        hillShift += dx * 0.012;
       }
     });
 
-    function endCanvasDrag(ev) {
-      if (!dragTarget) return;
+    window.addEventListener("pointerup", () => {
       dragTarget = null;
       cv.classList.remove("dragging");
-      if (ev && typeof ev.pointerId === "number") {
-        try { cv.releasePointerCapture(ev.pointerId); } catch {}
-      }
-    }
+    });
 
-    cv.addEventListener("pointerup", endCanvasDrag);
-    cv.addEventListener("pointercancel", endCanvasDrag);
     cv.addEventListener("dblclick", () => {
-      hillLiftOffset = 0;
-      hillPhaseShift = 0;
+      hillLift = 0;
+      hillShift = 0;
       if (isDaily) applyDailyVibe();
       else generateRandomScene();
     });
@@ -851,8 +789,8 @@
     // --- D. Daily Vibe & Snack Generator ---
     function applyDailyVibe() {
       isDaily = true;
-      hillLiftOffset = 0;
-      hillPhaseShift = 0;
+      hillLift = 0;
+      hillShift = 0;
       const key = getDayKey();
       const sr = createSeededRng(key);
       cityIdx = Math.floor(sr() * CITIES.length);
@@ -1030,8 +968,8 @@
       $("gen").onclick = () => {
         cityIdx = (cityIdx + 1) % CITIES.length;
         isDaily = false;
-        hillLiftOffset = 0;
-        hillPhaseShift = 0;
+        hillLift = 0;
+        hillShift = 0;
         if ($("dailyLabel")) $("dailyLabel").textContent = "Free-roll mode · tap for today's seed";
         renderCityChips();
         generateRandomScene();
@@ -1059,4 +997,11 @@
           }
         });
         renderCityChips();
-        if (
+        if (isDaily) applyDailyVibe();
+        else generateRandomScene();
+      })
+      .catch(() => {});
+  })();
+  </script>
+</body>
+</html>
