@@ -1,5 +1,5 @@
 <!--
-  Rainbow and Bites (v0.140)
+  Rainbow and Bites (v0.151)
   Free to use and share under the GNU General Public License (GPL).
   If you reuse or adapt this code, please keep all social links intact.
 -->
@@ -107,6 +107,51 @@
       background: #3b0764;
       border-color: #a78bfa;
     }
+    .tool-bar {
+      width: 100%;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      background: rgba(30, 41, 59, 0.72);
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 7px 10px;
+    }
+    .tool-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 5px;
+    }
+    .t-btn {
+      background: #0f172a;
+      color: #e2e8f0;
+      border: 1px solid #334155;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .t-btn.on {
+      background: #4c1d95;
+      border-color: #a78bfa;
+      color: #ffffff;
+    }
+    .swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 2px solid transparent;
+      padding: 0;
+      cursor: pointer;
+    }
+    .swatch.on {
+      border-color: #ffffff;
+      transform: scale(1.12);
+    }
     canvas {
       width: 100%;
       height: 230px;
@@ -115,6 +160,9 @@
       display: block;
       touch-action: none;
       cursor: grab;
+    }
+    canvas.draw-mode {
+      cursor: crosshair;
     }
     canvas.dragging {
       cursor: grabbing;
@@ -250,7 +298,7 @@
       <strong>GNU General Public License (GPL):</strong> Free to use &amp; share — please keep all social links intact if reused.
     </header>
 
-    <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.140</span></div>
+    <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.151</span></div>
 
     <div class="daily-bar">
       <span id="dailyLabel">Daily Sky &amp; Bite</span>
@@ -258,6 +306,24 @@
     </div>
 
     <div class="row" id="wx"></div>
+
+    <div class="tool-bar" aria-label="Skyscape drawing tools">
+      <div class="tool-group">
+        <button class="t-btn on" id="modeDrag" type="button">Move</button>
+        <button class="t-btn" id="modeLine" type="button">Line</button>
+        <button class="t-btn" id="modeOval" type="button">Oval</button>
+        <button class="t-btn" id="modeBox" type="button">Box</button>
+      </div>
+      <div class="tool-group">
+        <button class="swatch on" data-col="#fef08a" style="background:#fef08a" type="button" title="Sunbeam"></button>
+        <button class="swatch" data-col="#f43f5e" style="background:#f43f5e" type="button" title="Rose"></button>
+        <button class="swatch" data-col="#38bdf8" style="background:#38bdf8" type="button" title="Sky"></button>
+        <button class="swatch" data-col="#4ade80" style="background:#4ade80" type="button" title="Meadow"></button>
+        <button class="t-btn" id="undoDrawBtn" type="button">Undo</button>
+        <button class="t-btn" id="clearDrawBtn" type="button">Clear</button>
+      </div>
+    </div>
+
     <canvas id="cv" width="880" height="460"></canvas>
     <div id="cap"></div>
     <div id="snack" title="Tap for a random snack"></div>
@@ -292,7 +358,7 @@
 
     <section class="box">
       <h2>About Rainbow and Bites</h2>
-      <p>Welcome to <strong>Rainbow and Bites</strong>—a calm, single-screen browser toy for a quick breather between clicks. Check New York, Chicago, and Los Angeles for live weather conditions and temperatures alongside local time skies, complete with a drifting plane and trees along the hills. Drag right on the rainbow or hills to move and shape them as you like, and tap for a fresh snack idea whenever you want one. There are no timers or complicated rules here—just a cozy spot to play with the sky and grab a bite.</p>
+      <p>Welcome to <strong>Rainbow and Bites</strong>—a calm, single-screen browser toy for a quick breather between clicks. Check New York, Chicago, and Los Angeles for live weather conditions and temperatures alongside local time skies, complete with a drifting plane and trees along the hills. Drag right on the rainbow or hills to move them, or switch to Line, Oval, or Box mode to sketch your own lines and shapes across the skyscape before tapping for a fresh snack idea. There are no timers or complicated rules here—just a cozy spot to paint the sky, play with the scene, and grab a bite.</p>
       <p class="links">TWITCH: https://www.twitch.tv/arjt27<br />BIGO: https://www.bigo.tv/user/Adawg<br />ITCH: https://at37.itch.io/</p>
     </section>
   </main>
@@ -345,11 +411,18 @@
     let isDaily = true;
     let signedInUser = "";
     let sandboxMode = true;
-    let dragTarget = null;
+
+    // Skyscape interaction & drawing state
+    let toolMode = "drag"; // "drag" | "line" | "oval" | "box"
+    let drawColor = "#fef08a";
+    let drawings = [];
+    let activeShape = null;
+    let dragTarget = null; // "rainbow" | "hills" | null
     let dragLastX = 0;
     let dragLastY = 0;
     let hillLift = 0;
     let hillShift = 0;
+
     let scene = {
       paletteName: "Classic",
       colors: PALETTES[0][1],
@@ -367,7 +440,8 @@
       stars: [],
       hills: [],
       trees: [],
-      plane: { x: -70, y: 84, speed: 0.85, dir: 1, scale: 0.9 }
+      plane: { x: -70, y: 84, speed: 0.85, dir: 1, scale: 0.9 },
+      hillRef: null
     };
 
     function randInt(max) {
@@ -621,6 +695,51 @@
       }
     }
 
+    function renderSingleDrawing(item) {
+      if (!item) return;
+      ctx.save();
+      ctx.strokeStyle = item.color;
+      ctx.fillStyle = item.color + "33";
+      ctx.lineWidth = 4;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      if (item.kind === "line") {
+        ctx.beginPath();
+        ctx.moveTo(item.x1, item.y1);
+        ctx.lineTo(item.x2, item.y2);
+        ctx.stroke();
+      } else if (item.kind === "box") {
+        const x = Math.min(item.x1, item.x2);
+        const y = Math.min(item.y1, item.y2);
+        const w = Math.abs(item.x2 - item.x1);
+        const h = Math.abs(item.y2 - item.y1);
+        ctx.beginPath();
+        ctx.rect(x, y, w, h);
+        ctx.fill();
+        ctx.stroke();
+      } else if (item.kind === "oval") {
+        const cx = (item.x1 + item.x2) / 2;
+        const cy = (item.y1 + item.y2) / 2;
+        const rx = Math.max(4, Math.abs(item.x2 - item.x1) / 2);
+        const ry = Math.max(4, Math.abs(item.y2 - item.y1) / 2);
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawSkyscapeDrawings() {
+      for (const item of drawings) {
+        renderSingleDrawing(item);
+      }
+      if (activeShape) {
+        renderSingleDrawing(activeShape);
+      }
+    }
+
     function renderCityChips() {
       const box = $("wx");
       if (!box) return;
@@ -730,10 +849,26 @@
 
       drawHills(scene.hills);
       drawTrees(scene.trees, scene.hillRef);
+      drawSkyscapeDrawings();
       window.requestAnimationFrame(drawFrame);
     }
 
-    // --- C. Interactive Rainbow & Hills Drag ---
+    // --- C. Skyscape Drawing & Interactive Drag Controls ---
+    function setToolMode(nextMode) {
+      toolMode = nextMode;
+      const map = {
+        drag: "modeDrag",
+        line: "modeLine",
+        oval: "modeOval",
+        box: "modeBox"
+      };
+      Object.entries(map).forEach(([k, id]) => {
+        const el = $(id);
+        if (el) el.classList.toggle("on", k === nextMode);
+      });
+      cv.classList.toggle("draw-mode", nextMode !== "drag");
+    }
+
     function toCanvasCoords(ev) {
       const rect = cv.getBoundingClientRect();
       if (!rect.width || !rect.height) return { x: 0, y: 0 };
@@ -752,6 +887,17 @@
 
     cv.addEventListener("pointerdown", (ev) => {
       const pt = toCanvasCoords(ev);
+      if (toolMode !== "drag") {
+        activeShape = {
+          kind: toolMode,
+          color: drawColor,
+          x1: pt.x,
+          y1: pt.y,
+          x2: pt.x,
+          y2: pt.y
+        };
+        return;
+      }
       dragLastX = pt.x;
       dragLastY = pt.y;
       dragTarget = hitsRainbow(pt.x, pt.y) ? "rainbow" : "hills";
@@ -759,8 +905,13 @@
     });
 
     window.addEventListener("pointermove", (ev) => {
-      if (!dragTarget) return;
       const pt = toCanvasCoords(ev);
+      if (activeShape) {
+        activeShape.x2 = pt.x;
+        activeShape.y2 = pt.y;
+        return;
+      }
+      if (!dragTarget) return;
       const dx = pt.x - dragLastX;
       const dy = pt.y - dragLastY;
       dragLastX = pt.x;
@@ -775,6 +926,13 @@
     });
 
     window.addEventListener("pointerup", () => {
+      if (activeShape) {
+        const moved = Math.hypot(activeShape.x2 - activeShape.x1, activeShape.y2 - activeShape.y1);
+        if (moved >= 4) {
+          drawings.push(activeShape);
+        }
+        activeShape = null;
+      }
       dragTarget = null;
       cv.classList.remove("dragging");
     });
@@ -785,6 +943,32 @@
       if (isDaily) applyDailyVibe();
       else generateRandomScene();
     });
+
+    if ($("modeDrag")) $("modeDrag").onclick = () => setToolMode("drag");
+    if ($("modeLine")) $("modeLine").onclick = () => setToolMode("line");
+    if ($("modeOval")) $("modeOval").onclick = () => setToolMode("oval");
+    if ($("modeBox")) $("modeBox").onclick = () => setToolMode("box");
+
+    document.querySelectorAll(".swatch").forEach((sw) => {
+      sw.onclick = () => {
+        drawColor = sw.dataset.col || "#fef08a";
+        document.querySelectorAll(".swatch").forEach((s) => s.classList.toggle("on", s === sw));
+        if (toolMode === "drag") setToolMode("line");
+      };
+    });
+
+    if ($("undoDrawBtn")) {
+      $("undoDrawBtn").onclick = () => {
+        drawings.pop();
+      };
+    }
+
+    if ($("clearDrawBtn")) {
+      $("clearDrawBtn").onclick = () => {
+        drawings = [];
+        activeShape = null;
+      };
+    }
 
     // --- D. Daily Vibe & Snack Generator ---
     function applyDailyVibe() {
