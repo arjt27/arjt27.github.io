@@ -1,5 +1,5 @@
 <!--
-  Rainbow and Bites (v0.138)
+  Rainbow and Bites (v0.139)
   Free to use and share under the GNU General Public License (GPL).
   If you reuse or adapt this code, please keep all social links intact.
 -->
@@ -250,7 +250,7 @@
       <strong>GNU General Public License (GPL):</strong> Free to use &amp; share — please keep all social links intact if reused.
     </header>
 
-    <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.138</span></div>
+    <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.139</span></div>
 
     <div class="daily-bar">
       <span id="dailyLabel">Daily Sky &amp; Bite</span>
@@ -292,8 +292,7 @@
 
     <section class="box">
       <h2>About Rainbow and Bites</h2>
-      <p>Welcome to <strong>Rainbow and Bites</strong>—a calm, single-screen browser toy made for a quiet pause between clicks. Check today's Sky &amp; Bite or switch between New York, Chicago, and Los Angeles to see live weather conditions and temperatures, local time skies, a plane and trees, drag-to-move rainbows and hills, and a random snack idea.</p>
-      <p>There are no timers, leaderboards, or complicated rules here—just a cozy spot to make a rainbow, check skies across the US, and grab a snack idea.</p>
+      <p>Welcome to <strong>Rainbow and Bites</strong>—a calm, single-screen browser toy for a quick breather between clicks. Check New York, Chicago, and Los Angeles for live weather conditions and temperatures alongside local time skies, complete with a drifting plane and trees along the hills. Drag right on the rainbow or hills to move and shape them as you like, and tap for a fresh snack idea whenever you want one. There are no timers or complicated rules here—just a cozy spot to play with the sky and grab a bite.</p>
       <p class="links">TWITCH: https://www.twitch.tv/arjt27<br />BIGO: https://www.bigo.tv/user/Adawg<br />ITCH: https://at37.itch.io/</p>
     </section>
   </main>
@@ -580,7 +579,6 @@
       ctx.translate(plane.x, plane.y);
       ctx.scale(plane.scale * plane.dir, plane.scale);
 
-      // Soft contrail
       ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -588,13 +586,11 @@
       ctx.lineTo(-56, 0);
       ctx.stroke();
 
-      // Fuselage
       ctx.fillStyle = "#f8fafc";
       ctx.beginPath();
       ctx.ellipse(0, 0, 18, 4.5, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Tail fin
       ctx.beginPath();
       ctx.moveTo(-11, -2);
       ctx.lineTo(-18, -10);
@@ -602,7 +598,6 @@
       ctx.closePath();
       ctx.fill();
 
-      // Wing
       ctx.fillStyle = "#cbd5e1";
       ctx.beginPath();
       ctx.moveTo(-3, 0);
@@ -1064,11 +1059,4 @@
           }
         });
         renderCityChips();
-        if (isDaily) applyDailyVibe();
-        else generateRandomScene();
-      })
-      .catch(() => {});
-  })();
-  </script>
-</body>
-</html>
+        if (
