@@ -1,293 +1,924 @@
-<!--
-  Rainbow and Bites (v0.160)
-  Free to use and share under the GNU General Public License (GPL).
-  If you reuse or adapt this code, please keep all social links intact.
--->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Rainbow and Bites</title>
-  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+  <title>Rainbow and Bites v0.160</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    * { box-sizing: border-box; }
     body {
-      margin: 0; min-height: 100vh; background: #0f172a; color: #f8fafc;
-      font-family: system-ui, -apple-system, sans-serif; display: flex;
-      justify-content: center; padding: 18px 12px 36px;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     }
-    .app { width: 100%; max-width: 450px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
-    header.app-hdr, .daily-bar, .tool-bar, #snack, .box {
-      width: 100%; background: rgba(30, 41, 59, 0.72); border: 1px solid #334155; border-radius: 12px;
+    canvas {
+      display: block;
+      width: 100%;
+      touch-action: none;
     }
-    header.app-hdr { padding: 10px 12px; background: rgba(30, 41, 59, 0.78); font-size: 0.76rem; line-height: 1.45; color: #cbd5e1; }
-    header.app-hdr strong, .box h2 { color: #f8fafc; }
-    .top { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.12rem; }
-    .ver { font-size: 0.7rem; color: #c4b5fd; background: #2e1065; border: 1px solid #6d28d9; border-radius: 999px; padding: 2px 8px; }
-    .daily-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; font-size: 0.78rem; color: #cbd5e1; text-align: left; }
-    .daily-btn { background: #3b0764; color: #f8fafc; border: 1px solid #a78bfa; border-radius: 999px; padding: 5px 11px; font-size: 0.75rem; font-weight: 600; cursor: pointer; flex-shrink: 0; }
-    .row { display: flex; flex-wrap: nowrap; justify-content: space-between; gap: 6px; width: 100%; overflow-x: auto; }
-    .chip { flex: 1 1 0; white-space: nowrap; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 999px; padding: 6px 10px; font-size: 0.78rem; font-weight: 600; cursor: pointer; }
-    .chip.on { background: #3b0764; border-color: #a78bfa; }
-    .tool-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; padding: 7px 10px; }
-    .tool-group { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
-    .t-btn { background: #0f172a; color: #e2e8f0; border: 1px solid #334155; border-radius: 999px; padding: 4px 10px; font-size: 0.74rem; font-weight: 600; cursor: pointer; }
-    .t-btn.on { background: #4c1d95; border-color: #a78bfa; color: #fff; }
-    .swatch { width: 18px; height: 18px; border-radius: 999px; border: 2px solid transparent; padding: 0; cursor: pointer; }
-    .swatch.on { border-color: #fff; transform: scale(1.12); }
-    canvas { width: 100%; height: 230px; border-radius: 14px; background: #0284c7; display: block; touch-action: none; cursor: grab; }
-    canvas.draw-mode { cursor: crosshair; }
-    canvas.dragging { cursor: grabbing; }
-    #cap { font-size: 0.85rem; color: #e2e8f0; min-height: 1.2em; }
-    #snack { font-size: 0.9rem; color: #fde68a; background: rgba(30, 41, 59, 0.68); padding: 10px 12px; cursor: pointer; min-height: 40px; }
-    .btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
-    #gen { background: linear-gradient(90deg, #f43f5e, #f59e0b, #10b981, #3b82f6); color: #fff; border: 0; border-radius: 12px; padding: 10px 18px; font-weight: 700; cursor: pointer; }
-    #sBtn { background: #1e293b; color: #fde68a; border: 1px solid #475569; border-radius: 12px; padding: 10px 14px; font-weight: 600; cursor: pointer; }
-    .box { padding: 14px; border-radius: 14px; background: rgba(30, 41, 59, 0.68); text-align: left; font-size: 0.84rem; line-height: 1.5; color: #cbd5e1; }
-    .box h2 { margin: 0 0 6px; font-size: 0.95rem; }
-    .box p { margin: 0 0 8px; }
-    .box p:last-child { margin-bottom: 0; }
-    .box a { color: #c4b5fd; }
-    .auth-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
-    .auth-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .pi-btn { background: #4c1d95; color: #f8fafc; border: 1px solid #a78bfa; border-radius: 10px; padding: 7px 12px; font-size: 0.78rem; font-weight: 600; cursor: pointer; flex-shrink: 0; }
-    .pi-btn.sub { background: #1e293b; border-color: #475569; color: #cbd5e1; }
-    .pi-btn.on { background: #14532d; border-color: #4ade80; color: #dcfce7; }
-    #piStat { font-size: 0.78rem; color: #e2e8f0; word-break: break-word; }
-    .wallet-box { margin-top: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 10px; background: #0f172a; border: 1px solid #334155; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.74rem; color: #fde68a; word-break: break-all; }
-    .copy-note { font-size: 0.75rem; color: #94a3b8; margin-top: 6px; min-height: 1.1em; }
-    .links { word-break: break-word; font-size: 0.8rem; color: #e2e8f0; }
   </style>
 </head>
-<body>
-  <main class="app">
-    <header class="app-hdr"><strong>GNU General Public License (GPL):</strong> Free to use &amp; share — please keep all social links intact if reused.</header>
-    <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.160</span></div>
-    <div class="daily-bar"><span id="dailyLabel">Daily Sky &amp; Bite</span><button class="daily-btn" id="dailyBtn" type="button">Today's Vibe</button></div>
-    <div class="row" id="wx"></div>
-    <div class="tool-bar" aria-label="Skyscape drawing tools">
-      <div class="tool-group">
-        <button class="t-btn on" id="modeDrag" type="button">Move</button>
-        <button class="t-btn" id="modeLine" type="button">Line</button>
-        <button class="t-btn" id="modeOval" type="button">Oval</button>
-        <button class="t-btn" id="modeBox" type="button">Box</button>
-      </div>
-      <div class="tool-group">
-        <button class="swatch on" data-col="#fef08a" style="background:#fef08a" type="button" title="Sunbeam"></button>
-        <button class="swatch" data-col="#f43f5e" style="background:#f43f5e" type="button" title="Rose"></button>
-        <button class="swatch" data-col="#38bdf8" style="background:#38bdf8" type="button" title="Sky"></button>
-        <button class="swatch" data-col="#4ade80" style="background:#4ade80" type="button" title="Meadow"></button>
-        <button class="t-btn" id="undoDrawBtn" type="button">Undo</button>
-        <button class="t-btn" id="clearDrawBtn" type="button">Clear</button>
-      </div>
-    </div>
-    <canvas id="cv" width="880" height="460"></canvas>
-    <div id="cap"></div>
-    <div id="snack" title="Tap for a random snack"></div>
-    <div class="btns"><button id="gen" type="button">New Rainbow</button><button id="sBtn" type="button">Random Snack</button></div>
+<body class="min-h-screen bg-[#070b14] text-slate-100 antialiased selection:bg-violet-500/30 selection:text-violet-200">
+  <div class="mx-auto w-full max-w-2xl px-3 py-5 sm:px-6 sm:py-7">
+    <!-- Top GPL Notice -->
+    <header class="mb-4 rounded-2xl border border-slate-800/90 bg-slate-900/75 px-4 py-2.5 text-center text-xs text-slate-300 shadow-sm">
+      <p>
+        <span class="font-semibold text-slate-100">GNU General Public License (GPL):</span>
+        Free to use &amp; share — please keep all
+        <a href="#about-section" class="underline decoration-slate-500 underline-offset-2 hover:text-white">social links</a>
+        intact if reused.
+      </p>
+    </header>
 
-    <section class="box">
-      <h2>About Rainbow and Bites</h2>
-      <p>Welcome to <strong>Rainbow and Bites</strong>—a single-screen browser toy for a quick. Check New York, Chicago, and Los Angeles for live weather conditions and temperatures alongside local time skies, complete with rooftops, building silhouettes, a drifting plane, and trees along the hills. Drag right on the rainbow or hills to move them, or switch to Line, Oval, or Box mode to sketch your own lines and shapes across the skyscape before tapping for a fresh snack idea.</p>
-      <p>Pi Sign-In: optional sign-in via Pi Browser for a personal greeting, with Sandbox toggle for testing.</p>
-      <div class="auth-row">
-        <span id="piStat">Guest mode (not signed in)</span>
-        <div class="auth-actions">
-          <button class="pi-btn on" id="piSandboxBtn" type="button">Sandbox: ON</button>
-          <button class="pi-btn" id="piLoginBtn" type="button">Sign in with Pi</button>
-          <button class="pi-btn sub" id="piClearBtn" type="button" hidden>Clear</button>
+    <!-- App Title & Daily Sky & Bite Bar -->
+    <section class="mb-3 flex flex-col items-center gap-3">
+      <div class="flex items-center gap-2">
+        <h1 class="text-xl font-bold tracking-tight text-white sm:text-2xl">Rainbow and Bites</h1>
+        <span class="rounded-full border border-violet-400/30 bg-violet-500/20 px-2.5 py-0.5 text-xs font-semibold text-violet-200">
+          v0.160
+        </span>
+      </div>
+
+      <div class="flex w-full items-center justify-between gap-2 rounded-2xl border border-slate-800 bg-slate-900/80 px-3.5 py-2">
+        <div class="flex items-center gap-2 text-xs sm:text-sm">
+          <span class="inline-block h-2 w-2 rounded-full bg-sky-400"></span>
+          <span id="daily-sky-label" class="font-medium text-slate-200">Daily Sky &amp; Bite</span>
+        </div>
+        <button
+          id="today-vibe-btn"
+          type="button"
+          class="cursor-pointer rounded-xl bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white shadow transition hover:bg-violet-500 active:scale-[0.98]"
+        >
+          Today's Vibe
+        </button>
+      </div>
+    </section>
+
+    <!-- Drawing Toolbar -->
+    <section
+      aria-label="Drawing toolbar"
+      class="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-800 bg-slate-900/85 p-2"
+    >
+      <!-- Tools -->
+      <div id="tool-group" class="flex flex-wrap items-center gap-1">
+        <button
+          type="button"
+          data-tool="move"
+          class="tool-btn cursor-pointer rounded-xl bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white transition"
+        >
+          Move
+        </button>
+        <button
+          type="button"
+          data-tool="line"
+          class="tool-btn cursor-pointer rounded-xl border border-slate-700/80 bg-slate-800/80 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-slate-700/80"
+        >
+          Line
+        </button>
+        <button
+          type="button"
+          data-tool="oval"
+          class="tool-btn cursor-pointer rounded-xl border border-slate-700/80 bg-slate-800/80 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-slate-700/80"
+        >
+          Oval
+        </button>
+        <button
+          type="button"
+          data-tool="box"
+          class="tool-btn cursor-pointer rounded-xl border border-slate-700/80 bg-slate-800/80 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-slate-700/80"
+        >
+          Box
+        </button>
+      </div>
+
+      <!-- Color Swatches + Undo / Clear -->
+      <div class="flex flex-wrap items-center gap-2">
+        <div id="color-group" class="flex items-center gap-1.5 px-1" aria-label="Color swatches">
+          <button
+            type="button"
+            data-color="#fde047"
+            aria-label="Yellow"
+            class="swatch-btn h-5 w-5 cursor-pointer rounded-full bg-[#fde047] ring-2 ring-white ring-offset-2 ring-offset-slate-900 transition"
+          ></button>
+          <button
+            type="button"
+            data-color="#fb7185"
+            aria-label="Pink"
+            class="swatch-btn h-5 w-5 cursor-pointer rounded-full bg-[#fb7185] opacity-85 transition hover:opacity-100"
+          ></button>
+          <button
+            type="button"
+            data-color="#38bdf8"
+            aria-label="Light blue"
+            class="swatch-btn h-5 w-5 cursor-pointer rounded-full bg-[#38bdf8] opacity-85 transition hover:opacity-100"
+          ></button>
+          <button
+            type="button"
+            data-color="#2563eb"
+            aria-label="Dark blue"
+            class="swatch-btn h-5 w-5 cursor-pointer rounded-full bg-[#2563eb] opacity-85 transition hover:opacity-100"
+          ></button>
+          <button
+            type="button"
+            data-color="#4ade80"
+            aria-label="Green"
+            class="swatch-btn h-5 w-5 cursor-pointer rounded-full bg-[#4ade80] opacity-85 transition hover:opacity-100"
+          ></button>
+        </div>
+
+        <div class="flex items-center gap-1">
+          <button
+            id="undo-btn"
+            type="button"
+            class="cursor-pointer rounded-xl border border-slate-700/80 bg-slate-800/80 px-2.5 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-slate-700/80"
+          >
+            Undo
+          </button>
+          <button
+            id="clear-btn"
+            type="button"
+            class="cursor-pointer rounded-xl border border-slate-700/80 bg-slate-800/80 px-2.5 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-slate-700/80"
+          >
+            Clear
+          </button>
         </div>
       </div>
-      <p>Manual Pi Tip Jar: copy the public Pi wallet address below to send a tip from your Pi Wallet.</p>
-      <div class="wallet-box"><span id="piWalletAddr">GCM47GS76HRSNB55U4W4S5VDGBRSMEUOGYLOBRTT5KRAWW5YEI5YQ6TN</span><button class="pi-btn sub" id="copyWalletBtn" type="button">Copy</button></div>
-      <div class="copy-note" id="copyStatus"></div>
-      <p><a href="/privacy.html">Privacy Policy</a> &middot; <a href="/terms.html">Terms of Service</a></p>
-      <p class="links">TWITCH: https://www.twitch.tv/arjt27<br />BIGO: https://www.bigo.tv/user/Adawg<br />ITCH: https://at37.itch.io/</p>
     </section>
-  </main>
+
+    <!-- Interactive Sky & Scenery Canvas -->
+    <section class="mb-3 overflow-hidden rounded-2xl border border-sky-400/25 shadow-lg shadow-sky-950/40">
+      <canvas id="sky-canvas" class="h-72 sm:h-80"></canvas>
+    </section>
+
+    <!-- Status / Readout Pill Bar -->
+    <section class="mb-3">
+      <div
+        id="readout-bar"
+        role="status"
+        aria-live="polite"
+        class="min-h-[2.75rem] rounded-full border border-slate-800 bg-slate-900/90 px-4 py-2.5 text-center text-xs font-medium text-slate-200 sm:text-sm"
+      >
+        Loading sky &amp; bite readout...
+      </div>
+    </section>
+
+    <!-- Primary Action Buttons -->
+    <section class="mb-5 flex flex-wrap items-center justify-center gap-3">
+      <button
+        id="new-rainbow-btn"
+        type="button"
+        class="cursor-pointer rounded-xl bg-gradient-to-r from-rose-500 via-amber-400 to-sky-500 px-4 py-2.5 text-xs font-bold text-slate-950 shadow-md transition hover:brightness-105 active:scale-[0.98] sm:text-sm"
+      >
+        New Rainbow
+      </button>
+      <button
+        id="random-snack-btn"
+        type="button"
+        class="cursor-pointer rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-xs font-semibold text-slate-100 shadow transition hover:border-slate-500 hover:bg-slate-800 active:scale-[0.98] sm:text-sm"
+      >
+        Random Snack
+      </button>
+    </section>
+
+    <!-- About & Sandbox / Pi Section -->
+    <section id="about-section" class="space-y-4 rounded-2xl border border-slate-800/90 bg-slate-900/75 p-4 text-xs leading-relaxed text-slate-300 sm:p-5 sm:text-sm">
+      <div>
+        <h2 class="mb-1.5 text-sm font-bold text-white sm:text-base">About Rainbow and Bites</h2>
+        <p class="mb-2.5">
+          Welcome to <strong class="font-semibold text-white">Rainbow and Bites</strong>—a single-screen browser toy for a quick break. Check <strong class="font-semibold text-slate-100">New York</strong>, <strong class="font-semibold text-slate-100">Chicago</strong>, and <strong class="font-semibold text-slate-100">Los Angeles</strong> for local time skies and simulated weather conditions alongside rooftops, building silhouettes, a drifting plane, and trees along the hills.
+        </p>
+        <p>
+          In <strong class="font-semibold text-slate-100">Move</strong> mode, drag directly on the rainbow or hills to reposition them, or switch to <strong class="font-semibold text-slate-100">Line</strong>, <strong class="font-semibold text-slate-100">Oval</strong>, or <strong class="font-semibold text-slate-100">Box</strong> mode to sketch shapes across the skyscape before tapping <strong class="font-semibold text-slate-100">New Rainbow</strong> or <strong class="font-semibold text-slate-100">Random Snack</strong>.
+        </p>
+      </div>
+
+      <!-- City Skies Strip -->
+      <div id="city-skies-list" class="grid grid-cols-1 gap-2 rounded-xl border border-slate-800 bg-slate-950/60 p-3 sm:grid-cols-3">
+        <!-- Populated dynamically -->
+      </div>
+
+      <!-- Pi Sign-In & Locked Sandbox -->
+      <div class="border-t border-slate-800 pt-3.5">
+        <p class="mb-2.5 text-xs text-slate-400">
+          Pi Sign-In: optional sign-in via Pi Browser for a personal greeting. Sandbox mode is hardcoded to <code class="rounded bg-slate-800 px-1 py-0.5 text-emerald-300">true</code> and remains locked ON for safe testing.
+        </p>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div id="pi-status-text" class="text-xs font-medium text-slate-200">
+            Guest mode (not signed in)
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <span
+              id="sandbox-badge"
+              title="Sandbox is locked ON (SANDBOX_MODE = true)"
+              class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-300"
+            >
+              <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+              Sandbox: ON (Locked)
+            </span>
+            <button
+              id="pi-signin-btn"
+              type="button"
+              class="cursor-pointer rounded-xl bg-violet-600 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-violet-500 active:scale-[0.98]"
+            >
+              Sign in with Pi
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual Pi Tip Jar -->
+      <div class="border-t border-slate-800 pt-3.5">
+        <p class="mb-2 text-xs text-slate-300">
+          <strong class="font-semibold text-white">Manual Pi Tip Jar:</strong> copy the public Pi wallet address below to send a tip from your Pi Wallet (Sandbox mode active).
+        </p>
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <input
+            id="pi-wallet-input"
+            type="text"
+            readonly
+            value="GBSANDBOXRAINBOWANDBITES0160PIWALLETADDRESSEXAMPLE9X42"
+            aria-label="Public Pi wallet address"
+            class="w-full flex-1 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-slate-200 focus:border-violet-500 focus:outline-none"
+          />
+          <button
+            id="copy-wallet-btn"
+            type="button"
+            class="cursor-pointer rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-100 transition hover:bg-slate-700 active:scale-[0.98]"
+          >
+            Copy Address
+          </button>
+        </div>
+        <p id="copy-feedback" class="mt-1.5 min-h-[1rem] text-xs text-emerald-400"></p>
+      </div>
+    </section>
+  </div>
 
   <script>
-  (function () {
-    function $(id) { return document.getElementById(id); }
-    var capEl = $("cap");
-    function showErr(err) {
-      if (capEl) capEl.textContent = "Script error: " + (err && err.message ? err.message : String(err));
+    /**
+     * Rainbow and Bites v0.160
+     * SANDBOX_MODE is permanently hardcoded to `true` and cannot be toggled off.
+     */
+    const SANDBOX_MODE = true;
+
+    // Prevent any accidental mutation or override attempt on SANDBOX_MODE
+    Object.defineProperty(window, 'SANDBOX_MODE', {
+      value: true,
+      writable: false,
+      configurable: false
+    });
+
+    function isSandbox() {
+      return SANDBOX_MODE === true;
     }
 
-    try {
-      var cv = $("cv");
-      var ctx = cv && cv.getContext ? cv.getContext("2d") : null;
+    // Application state
+    const state = {
+      tool: 'move', // 'move' | 'line' | 'oval' | 'box'
+      color: '#fde047',
+      shapes: [], // User-drawn shapes { type, color, x1, y1, x2, y2 }
+      draftShape: null,
+      dragTarget: null, // 'rainbow' | 'hills' | null
+      dragOffset: { x: 0, y: 0 },
+      rainbow: {
+        offsetX: 0,
+        offsetY: 22,
+        radiusScale: 1,
+        paletteIndex: 0
+      },
+      hills: {
+        offsetX: 0,
+        offsetY: 0
+      },
+      planeX: 0.15, // Normalized horizontal progress (0..1+)
+      snackIndex: 0,
+      cityIndex: 0,
+      signedInUser: null
+    };
 
-      var CITIES = [
-        { name: "New York", tzOffset: -5, lat: 40.71, lon: -74.01, temp: "", weather: "", code: 0 },
-        { name: "Chicago", tzOffset: -6, lat: 41.88, lon: -87.63, temp: "", weather: "", code: 0 },
-        { name: "Los Angeles", tzOffset: -8, lat: 34.05, lon: -118.24, temp: "", weather: "", code: 0 }
-      ];
-      var PALETTES = [
-        ["Classic", ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#8b5cf6"]],
-        ["Pastel", ["#fda4af", "#fdba74", "#fde047", "#86efac", "#93c5fd", "#d8b4fe"]],
-        ["Neon", ["#ff007f", "#ff5e00", "#ffe600", "#00ff9d", "#00d9ff", "#b829ff"]],
-        ["Sunset", ["#9f1239", "#e11d48", "#f97316", "#fbbf24", "#fef08a"]]
-      ];
-      var BASES = ["rolled oats", "Greek yogurt", "cottage cheese", "kiwi slices", "toasted plantain", "air-fried banana peel", "hard-boiled eggs", "sliced apple", "rice cakes", "cucumber rounds", "popcorn", "roasted chickpeas"];
-      var TOPPINGS = ["cinnamon & blueberries", "chia & honey drizzle", "sea salt & crushed peanuts", "citrus zest & warm spice", "everything seasoning & lemon", "dark cocoa nibs & sliced banana", "black pepper & herbs", "tahini & sesame seeds", "smoked paprika & lime", "matcha & almond slivers"];
-      var FORMATS = ["bowl", "plate", "skillet bite", "parfait", "toast topper", "crunchy snack"];
-      var ROOFTOPS = [
-        { x: 20, w: 46, h: 48, roof: "flat" }, { x: 72, w: 54, h: 68, roof: "pitched" },
-        { x: 132, w: 40, h: 42, roof: "stepped" }, { x: 650, w: 48, h: 60, roof: "pitched" },
-        { x: 704, w: 54, h: 76, roof: "stepped" }, { x: 764, w: 46, h: 46, roof: "flat" },
-        { x: 816, w: 44, h: 56, roof: "pitched" }
-      ];
+    const RAINBOW_PALETTES = [
+      ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6'],
+      ['#f43f5e', '#fb7185', '#fbbf24', '#34d399', '#38bdf8', '#a78bfa'],
+      ['#ff6b6b', '#ffa06b', '#ffd93d', '#6bcb77', '#4d96ff', '#c77dff'],
+      ['#ec4899', '#f59e0b', '#84cc16', '#06b6d4', '#6366f1', '#d946ef']
+    ];
 
-      var cityIdx = 0, snackBag = [], lastSnack = "", isDaily = true, signedInUser = "", sandboxMode = true;
-      var toolMode = "drag", drawColor = "#fef08a", drawings = [], activeShape = null, dragTarget = null;
-      var dragLastX = 0, dragLastY = 0, hillLift = 0, hillShift = 0, activePointerId = null;
+    const SNACKS = [
+      { name: 'Honeycrisp Apple & Sharp Cheddar', vibe: 'Crisp & Cozy' },
+      { name: 'Cinnamon Churro Bites & Warm Cocoa', vibe: 'Golden Hour Sweet' },
+      { name: 'Avocado Everything Toast & Chili Flakes', vibe: 'Breezy & Bright' },
+      { name: 'Mango Tajín Cup & Toasted Pepitas', vibe: 'Sunlit & Zesty' },
+      { name: 'Matcha Shortbread & Strawberry Halves', vibe: 'Pastel & Calm' },
+      { name: 'Warm Pretzel Nuggets & Dijon Dip', vibe: 'City Rooftop Crisp' },
+      { name: 'Berry Yogurt Parfait & Maple Granola', vibe: 'Morning Sky Fresh' },
+      { name: 'Garlic Herb Focaccia & Olive Oil', vibe: 'Twilight Gather' }
+    ];
 
-      var scene = {
-        paletteName: PALETTES[0][0], colors: PALETTES[0][1], skyTop: "#0284c7", skyBot: "#38bdf8",
-        isNight: false, period: "day", cx: 440, cy: 420, bandWidth: 19, startRadius: 275,
-        orbX: 440, orbY: 90, clouds: [], stars: [], hills: [], trees: [], plane: null, hillRef: null
+    const CITIES = [
+      { city: 'New York', tz: 'America/New_York', tempF: 54, condition: 'Partly Cloudy' },
+      { city: 'Chicago', tz: 'America/Chicago', tempF: 47, condition: 'Lake Breeze' },
+      { city: 'Los Angeles', tz: 'America/Los_Angeles', tempF: 68, condition: 'Clear & Sunny' }
+    ];
+
+    // DOM references
+    const canvas = document.getElementById('sky-canvas');
+    const ctx = canvas.getContext('2d');
+    const readoutBar = document.getElementById('readout-bar');
+    const dailySkyLabel = document.getElementById('daily-sky-label');
+    const citySkiesList = document.getElementById('city-skies-list');
+    const piStatusText = document.getElementById('pi-status-text');
+    const piSigninBtn = document.getElementById('pi-signin-btn');
+    const sandboxBadge = document.getElementById('sandbox-badge');
+    const copyWalletBtn = document.getElementById('copy-wallet-btn');
+    const piWalletInput = document.getElementById('pi-wallet-input');
+    const copyFeedback = document.getElementById('copy-feedback');
+
+    /**
+     * Format current local time for a given IANA time zone.
+     */
+    function getCityTimeString(timeZone) {
+      try {
+        return new Intl.DateTimeFormat('en-US', {
+          timeZone,
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        }).format(new Date());
+      } catch (err) {
+        return 'Local Time';
+      }
+    }
+
+    /**
+     * Render simulated/live city sky & weather cards in the About section.
+     */
+    function renderCitySkies() {
+      if (!citySkiesList) return;
+      citySkiesList.innerHTML = CITIES.map((c) => {
+        const localTime = getCityTimeString(c.tz);
+        return `
+          <div class="rounded-lg border border-slate-800/90 bg-slate-900/80 px-3 py-2">
+            <div class="flex items-center justify-between font-semibold text-white">
+              <span>${c.city}</span>
+              <span class="text-sky-300">${c.tempF}°F</span>
+            </div>
+            <div class="mt-0.5 flex items-center justify-between text-xs text-slate-400">
+              <span>${c.condition}</span>
+              <span>${localTime}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /**
+     * Update the status pill bar and Daily Sky & Bite header.
+     */
+    function updateReadout(prefix = '') {
+      const activeCity = CITIES[state.cityIndex % CITIES.length];
+      const snack = SNACKS[state.snackIndex % SNACKS.length];
+      const localTime = getCityTimeString(activeCity.tz);
+      const userPrefix = state.signedInUser ? `[${state.signedInUser}] ` : '';
+      const extra = prefix ? `${prefix} • ` : '';
+
+      readoutBar.textContent = `${userPrefix}${extra}${activeCity.city} (${localTime}, ${activeCity.tempF}°F ${activeCity.condition}) — Snack: ${snack.name}`;
+      dailySkyLabel.textContent = `Daily Sky & Bite • ${activeCity.city}`;
+    }
+
+    /**
+     * Resize canvas backing store cleanly to match container width & height.
+     */
+    function resizeCanvas() {
+      try {
+        const rect = canvas.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const width = Math.max(280, Math.floor(rect.width));
+        const height = Math.max(220, Math.floor(rect.height));
+
+        if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
+          canvas.width = width * dpr;
+          canvas.height = height * dpr;
+        }
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        drawScene();
+      } catch (err) {
+        console.error('Canvas resize error:', err);
+      }
+    }
+
+    function getCssSize() {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        w: Math.max(280, rect.width),
+        h: Math.max(220, rect.height)
       };
+    }
 
-      function randInt(max) { return max <= 1 ? 0 : Math.floor(Math.random() * max); }
-      function pickRandom(list) { return list[randInt(list.length)]; }
-      function randRange(min, max) { return min + Math.random() * (max - min); }
-      function pad2(n) { return n < 10 ? "0" + n : String(n); }
-      function getDayKey() {
-        var d = new Date();
-        return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+    /**
+     * Compute rainbow geometry for hit-testing and drawing.
+     */
+    function getRainbowGeometry(w, h) {
+      const cx = w * 0.5 + state.rainbow.offsetX;
+      const cy = h * 0.68 + state.rainbow.offsetY;
+      const outerRadius = Math.min(w * 0.42, h * 0.56) * state.rainbow.radiusScale;
+      const bandWidth = Math.max(6, outerRadius * 0.085);
+      return { cx, cy, outerRadius, bandWidth };
+    }
+
+    /**
+     * Compute hills geometry for hit-testing and drawing.
+     */
+    function getHillsGeometry(w, h) {
+      const baseY = h * 0.74 + state.hills.offsetY;
+      const ox = state.hills.offsetX;
+      return { baseY, ox, w, h };
+    }
+
+    /**
+     * Check if a canvas point (px, py) hits the rainbow arc.
+     */
+    function hitTestRainbow(px, py, w, h) {
+      const { cx, cy, outerRadius, bandWidth } = getRainbowGeometry(w, h);
+      const innerRadius = Math.max(8, outerRadius - bandWidth * 6);
+      const dx = px - cx;
+      const dy = py - cy;
+      const dist = Math.hypot(dx, dy);
+      return py <= cy + bandWidth && dist >= innerRadius - 10 && dist <= outerRadius + 10;
+    }
+
+    /**
+     * Check if a canvas point (px, py) hits the hills area.
+     */
+    function hitTestHills(px, py, w, h) {
+      const { baseY } = getHillsGeometry(w, h);
+      return py >= baseY - h * 0.14;
+    }
+
+    /**
+     * Draw the complete skyscape in strict back-to-front order:
+     * 1. Sky gradient/fill
+     * 2. Rainbow arc
+     * 3. Distant city/building silhouettes & rooftops
+     * 4. Drifting plane
+     * 5. Rolling hills & trees along hills
+     * 6. User-drawn shapes
+     */
+    function drawScene() {
+      try {
+        const { w, h } = getCssSize();
+        ctx.clearRect(0, 0, w, h);
+
+        // 1. Sky gradient (drawn first so nothing is overwritten)
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+        skyGrad.addColorStop(0, '#0ea5e9');
+        skyGrad.addColorStop(0.55, '#38bdf8');
+        skyGrad.addColorStop(1, '#bae6fd');
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, w, h);
+
+        // Soft sun glow
+        ctx.save();
+        ctx.fillStyle = 'rgba(254, 249, 195, 0.45)';
+        ctx.beginPath();
+        ctx.arc(w * 0.82, h * 0.2, Math.min(w, h) * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // 2. Rainbow arc
+        drawRainbow(w, h);
+
+        // 3. Rooftops & building silhouettes
+        drawBuildings(w, h);
+
+        // 4. Drifting plane
+        drawPlane(w, h);
+
+        // 5. Rolling hills & trees along hills
+        drawHillsAndTrees(w, h);
+
+        // 6. User-drawn shapes (committed + active draft)
+        for (const shape of state.shapes) {
+          drawShape(shape);
+        }
+        if (state.draftShape) {
+          drawShape(state.draftShape);
+        }
+      } catch (err) {
+        console.error('Error drawing canvas scene:', err);
       }
-      function seededIndex(seedStr, mod) {
-        var n = 0;
-        for (var i = 0; i < seedStr.length; i++) n = (n * 37 + seedStr.charCodeAt(i)) % 1000003;
-        return mod > 0 ? n % mod : 0;
-      }
-      function createSeededRng(seedStr) {
-        var cur = seededIndex(seedStr, 2147483646) + 1;
-        return function () {
-          cur = (cur * 48271) % 2147483647;
-          return cur / 2147483647;
-        };
-      }
-      function hexToRgba(hex, alpha) {
-        var clean = String(hex || "").replace("#", "");
-        if (clean.length !== 6) return "rgba(254, 240, 138, " + alpha + ")";
-        var r = parseInt(clean.slice(0, 2), 16);
-        var g = parseInt(clean.slice(2, 4), 16);
-        var b = parseInt(clean.slice(4, 6), 16);
-        return "rgba(" + (isNaN(r) ? 254 : r) + ", " + (isNaN(g) ? 240 : g) + ", " + (isNaN(b) ? 138 : b) + ", " + alpha + ")";
-      }
-      function dist2D(ax, ay, bx, by) {
-        var dx = ax - bx, dy = ay - by;
-        return Math.sqrt(dx * dx + dy * dy);
-      }
-      function drawOval(x, y, rx, ry) {
-        var rX = Math.max(1, Math.abs(rx)), rY = Math.max(1, Math.abs(ry));
-        if (ctx && typeof ctx.ellipse === "function") {
+    }
+
+    function drawRainbow(w, h) {
+      const { cx, cy, outerRadius, bandWidth } = getRainbowGeometry(w, h);
+      const palette = RAINBOW_PALETTES[state.rainbow.paletteIndex % RAINBOW_PALETTES.length];
+
+      ctx.save();
+      ctx.lineCap = 'round';
+      palette.forEach((hex, idx) => {
+        const r = outerRadius - idx * bandWidth;
+        if (r <= 4) return;
+        ctx.strokeStyle = hex;
+        ctx.lineWidth = bandWidth * 0.96;
+        ctx.globalAlpha = 0.85;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, Math.PI, 0, false);
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    function drawBuildings(w, h) {
+      const groundLine = h * 0.73;
+      const buildings = [
+        { x: 0.05, bw: 0.09, bh: 0.18, roof: 'flat' },
+        { x: 0.15, bw: 0.07, bh: 0.25, roof: 'step' },
+        { x: 0.23, bw: 0.1, bh: 0.15, roof: 'pitched' },
+        { x: 0.58, bw: 0.08, bh: 0.22, roof: 'pitched' },
+        { x: 0.67, bw: 0.09, bh: 0.16, roof: 'flat' },
+        { x: 0.77, bw: 0.08, bh: 0.27, roof: 'step' },
+        { x: 0.86, bw: 0.09, bh: 0.17, roof: 'pitched' }
+      ];
+
+      ctx.save();
+      ctx.fillStyle = '#1e293b';
+
+      buildings.forEach((b) => {
+        const bx = b.x * w;
+        const bw = b.bw * w;
+        const bh = b.bh * h;
+        const by = groundLine - bh;
+
+        ctx.fillRect(bx, by, bw, bh + h * 0.1);
+
+        if (b.roof === 'pitched') {
           ctx.beginPath();
-          ctx.ellipse(x, y, rX, rY, 0, 0, Math.PI * 2);
+          ctx.moveTo(bx - 2, by);
+          ctx.lineTo(bx + bw * 0.5, by - Math.min(18, bh * 0.25));
+          ctx.lineTo(bx + bw + 2, by);
+          ctx.closePath();
+          ctx.fill();
+        } else if (b.roof === 'step') {
+          ctx.fillRect(bx + bw * 0.2, by - 9, bw * 0.6, 9);
+        }
+
+        // Subtle lit windows
+        ctx.fillStyle = 'rgba(253, 224, 71, 0.35)';
+        const cols = Math.max(2, Math.floor(bw / 14));
+        const rows = Math.max(2, Math.floor(bh / 18));
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            if ((r + c) % 2 === 0) {
+              ctx.fillRect(bx + 6 + c * ((bw - 10) / cols), by + 8 + r * 14, 4, 6);
+            }
+          }
+        }
+        ctx.fillStyle = '#1e293b';
+      });
+
+      ctx.restore();
+    }
+
+    function drawPlane(w, h) {
+      const px = state.planeX * (w + 120) - 60;
+      const py = h * 0.22 + Math.sin(state.planeX * Math.PI * 2) * 8;
+
+      ctx.save();
+      ctx.translate(px, py);
+
+      // Soft contrail
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-48, 0);
+      ctx.lineTo(-14, 0);
+      ctx.stroke();
+
+      // Fuselage
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 15, 4.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Tail fin & wing
+      ctx.beginPath();
+      ctx.moveTo(-10, -2);
+      ctx.lineTo(-15, -9);
+      ctx.lineTo(-6, -2);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#e2e8f0';
+      ctx.beginPath();
+      ctx.moveTo(-2, 0);
+      ctx.lineTo(-7, 8);
+      ctx.lineTo(3, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function drawHillsAndTrees(w, h) {
+      const { baseY, ox } = getHillsGeometry(w, h);
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(-60 + ox, h + 20);
+      ctx.lineTo(-60 + ox, baseY);
+      ctx.bezierCurveTo(
+        w * 0.25 + ox,
+        baseY - h * 0.13,
+        w * 0.45 + ox,
+        baseY + h * 0.05,
+        w * 0.72 + ox,
+        baseY - h * 0.07
+      );
+      ctx.quadraticCurveTo(w * 0.92 + ox, baseY - h * 0.14, w + 80 + ox, baseY - h * 0.02);
+      ctx.lineTo(w + 80 + ox, h + 20);
+      ctx.closePath();
+
+      const hillGrad = ctx.createLinearGradient(0, baseY - h * 0.12, 0, h);
+      hillGrad.addColorStop(0, '#16a34a');
+      hillGrad.addColorStop(1, '#14532d');
+      ctx.fillStyle = hillGrad;
+      ctx.fill();
+
+      // Trees along the hill ridge
+      const treePositions = [0.12, 0.21, 0.34, 0.56, 0.68, 0.81, 0.9];
+      treePositions.forEach((tRatio, i) => {
+        const tx = tRatio * w + ox;
+        // Approximate y along curve
+        const ty = baseY - Math.sin(tRatio * Math.PI) * (h * 0.06) - 4;
+        const scale = 0.8 + (i % 3) * 0.2;
+
+        // Trunk
+        ctx.fillStyle = '#451a03';
+        ctx.fillRect(tx - 1.5 * scale, ty - 4 * scale, 3 * scale, 6 * scale);
+
+        // Foliage crown
+        ctx.fillStyle = i % 2 === 0 ? '#15803d' : '#22c55e';
+        ctx.beginPath();
+        ctx.arc(tx, ty - 8 * scale, 6.5 * scale, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      ctx.restore();
+    }
+
+    function drawShape(shape) {
+      ctx.save();
+      ctx.strokeStyle = shape.color;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      const x1 = shape.x1;
+      const y1 = shape.y1;
+      const x2 = shape.x2;
+      const y2 = shape.y2;
+
+      if (shape.type === 'line') {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      } else if (shape.type === 'box') {
+        ctx.strokeRect(
+          Math.min(x1, x2),
+          Math.min(y1, y2),
+          Math.abs(x2 - x1),
+          Math.abs(y2 - y1)
+        );
+      } else if (shape.type === 'oval') {
+        const cx = (x1 + x2) / 2;
+        const cy = (y1 + y2) / 2;
+        const rx = Math.max(2, Math.abs(x2 - x1) / 2);
+        const ry = Math.max(2, Math.abs(y2 - y1) / 2);
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    function getCanvasPoint(evt) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: evt.clientX - rect.left,
+        y: evt.clientY - rect.top
+      };
+    }
+
+    // Pointer interaction handlers for Move & sketching tools
+    canvas.addEventListener('pointerdown', (evt) => {
+      canvas.setPointerCapture(evt.pointerId);
+      const pt = getCanvasPoint(evt);
+      const { w, h } = getCssSize();
+
+      if (state.tool === 'move') {
+        if (hitTestRainbow(pt.x, pt.y, w, h)) {
+          state.dragTarget = 'rainbow';
+          state.dragOffset = {
+            x: pt.x - state.rainbow.offsetX,
+            y: pt.y - state.rainbow.offsetY
+          };
           return;
         }
-        if (!ctx) return;
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.scale(rX, rY);
-        ctx.beginPath();
-        ctx.arc(0, 0, 1, 0, Math.PI * 2);
-        ctx.restore();
-      }
-      function getCityClock(tzOffset) {
-        var now = new Date();
-        var local = new Date(now.getTime() + now.getTimezoneOffset() * 60000 + tzOffset * 3600000);
-        var hour = local.getHours() + local.getMinutes() / 60;
-        var period = hour >= 6 && hour < 8.5 ? "dawn" : hour >= 17 && hour < 20 ? "dusk" : (hour < 6 || hour >= 20 ? "night" : "day");
-        var h12 = local.getHours() % 12 || 12;
-        var ampm = local.getHours() >= 12 ? "PM" : "AM";
-        return { period: period, label: h12 + ":" + pad2(local.getMinutes()) + " " + ampm };
-      }
-      function weatherLabel(code) {
-        if (code === 0) return "Clear";
-        if (code <= 2) return "Partly Cloudy";
-        if (code === 3) return "Overcast";
-        if (code <= 48) return "Foggy";
-        if (code <= 57) return "Drizzle";
-        if (code <= 67) return "Rain";
-        if (code <= 77) return "Snow";
-        if (code <= 82) return "Showers";
-        if (code <= 86) return "Snow Showers";
-        return "Thunderstorm";
-      }
-      function computeSkyPalette(code, period) {
-        if (period === "night") return code <= 2 ? ["#020617", "#1e1b4b", true] : (code <= 48 ? ["#0f172a", "#1e293b", true] : ["#090d16", "#172554", true]);
-        if (period === "dawn" || period === "dusk") return code <= 2 ? ["#4c1d95", "#f97316", false] : (code <= 48 ? ["#334155", "#c2410c", false] : ["#1e293b", "#7c2d12", false]);
-        return code <= 2 ? ["#0284c7", "#38bdf8", false] : (code <= 48 ? ["#334155", "#64748b", false] : ["#1e3a8a", "#0f172a", false]);
-      }
-      function buildSkyscapeProps(rngFn, weatherCode, period) {
-        var w = cv ? cv.width : 880;
-        var cloudCount = weatherCode <= 2 ? 3 : (weatherCode <= 48 ? 5 : 4);
-        var clouds = [];
-        for (var ci = 0; ci < cloudCount; ci++) {
-          clouds.push({ x: rngFn() * w, y: 72 + ci * 42 + rngFn() * 14, scale: 0.75 + rngFn() * 0.55, speed: 0.35 + rngFn() * 0.45 });
+        if (hitTestHills(pt.x, pt.y, w, h)) {
+          state.dragTarget = 'hills';
+          state.dragOffset = {
+            x: pt.x - state.hills.offsetX,
+            y: pt.y - state.hills.offsetY
+          };
+          return;
         }
-        var stars = [];
-        for (var si = 0; si < 34; si++) {
-          stars.push({ x: rngFn() * w, y: 18 + rngFn() * 185, radius: 1.5 + rngFn() * 2.2, phase: rngFn() * Math.PI * 2, twinkle: 0.045 + rngFn() * 0.05 });
-        }
-        var hills = [
-          { baseH: 44 + rngFn() * 14, amp: 18 + rngFn() * 10, freq: 0.007 + rngFn() * 0.003, offset: rngFn() * 10, color: "rgba(15, 23, 42, 0.55)" },
-          { baseH: 24 + rngFn() * 10, amp: 11 + rngFn() * 8, freq: 0.012 + rngFn() * 0.004, offset: rngFn() * 10, color: "rgba(2, 6, 23, 0.88)" }
-        ];
-        var fracs = [0.14, 0.24, 0.76, 0.86];
-        var trees = [];
-        for (var ti = 0; ti < fracs.length; ti++) {
-          trees.push({ x: w * fracs[ti] + (rngFn() * 20 - 10), scale: 0.8 + rngFn() * 0.3 + (ti % 2) * 0.06, canopy: period === "night" ? "#064e3b" : "#15803d" });
-        }
-        var dir = rngFn() < 0.5 ? 1 : -1;
-        var plane = { x: dir === 1 ? -65 : w + 65, y: 68 + rngFn() * 60, speed: (0.7 + rngFn() * 0.45) * dir, dir: dir, scale: 0.85 };
-        return { orbX: 130 + rngFn() * 620, orbY: 70 + rngFn() * 54, clouds: clouds, stars: stars, hills: hills, trees: trees, plane: plane, hillRef: hills[1] };
+      } else {
+        state.draftShape = {
+          type: state.tool,
+          color: state.color,
+          x1: pt.x,
+          y1: pt.y,
+          x2: pt.x,
+          y2: pt.y
+        };
+        drawScene();
       }
-      function hillSurfaceY(h, x, layerIdx) {
-        var hgt = cv ? cv.height : 460;
-        var lift = layerIdx === 1 ? hillLift : hillLift * 0.5;
-        var shift = layerIdx === 1 ? hillShift : hillShift * 0.5;
-        return hgt - h.baseH - lift - Math.sin(x * h.freq + h.offset + shift) * h.amp;
+    });
+
+    canvas.addEventListener('pointermove', (evt) => {
+      const pt = getCanvasPoint(evt);
+      if (state.dragTarget === 'rainbow') {
+        state.rainbow.offsetX = pt.x - state.dragOffset.x;
+        state.rainbow.offsetY = pt.y - state.dragOffset.y;
+        drawScene();
+      } else if (state.dragTarget === 'hills') {
+        state.hills.offsetX = pt.x - state.dragOffset.x;
+        state.hills.offsetY = pt.y - state.dragOffset.y;
+        drawScene();
+      } else if (state.draftShape) {
+        state.draftShape.x2 = pt.x;
+        state.draftShape.y2 = pt.y;
+        drawScene();
       }
-      function drawBuildings(period) {
-        if (!ctx || !cv) return;
-        var groundY = cv.height - Math.max(8, hillLift * 0.3);
-        var glow = period === "night" || period === "dusk";
-        ctx.save();
-        for (var i = 0; i < ROOFTOPS.length; i++) {
-          var b = ROOFTOPS[i];
-          var bx = b.x + hillShift * 5;
-          var topY = groundY - b.h;
-          ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
-          ctx.fillRect(bx, topY, b.w, b.h + 10);
-          if (b.roof === "pitched") {
-            ctx.beginPath(); ctx.moveTo(bx - 3, topY); ctx.lineTo(bx + b.w * 0.5, topY - 10); ctx.lineTo(bx + b.w + 3, topY); ctx.closePath(); ctx.fill();
-          } else if (b.roof === "stepped") {
-            var sw = b.w * 0.45;
-            ctx.fillRect(bx + (b.w - sw) * 0.5, topY - 7, sw, 7);
+    });
+
+    function finishPointerAction(evt) {
+      if (canvas.hasPointerCapture && canvas.hasPointerCapture(evt.pointerId)) {
+        canvas.releasePointerCapture(evt.pointerId);
+      }
+      if (state.draftShape) {
+        const dist = Math.hypot(
+          state.draftShape.x2 - state.draftShape.x1,
+          state.draftShape.y2 - state.draftShape.y1
+        );
+        if (dist > 3) {
+          state.shapes.push(state.draftShape);
+        }
+        state.draftShape = null;
+        drawScene();
+      }
+      state.dragTarget = null;
+    }
+
+    canvas.addEventListener('pointerup', finishPointerAction);
+    canvas.addEventListener('pointercancel', finishPointerAction);
+
+    // Toolbar controls
+    document.querySelectorAll('.tool-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const selected = btn.getAttribute('data-tool');
+        state.tool = selected;
+        document.querySelectorAll('.tool-btn').forEach((b) => {
+          const active = b.getAttribute('data-tool') === selected;
+          b.className = active
+            ? 'tool-btn cursor-pointer rounded-xl bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white transition'
+            : 'tool-btn cursor-pointer rounded-xl border border-slate-700/80 bg-slate-800/80 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-slate-700/80';
+        });
+      });
+    });
+
+    document.querySelectorAll('.swatch-btn').forEach((swatch) => {
+      swatch.addEventListener('click', () => {
+        const chosenColor = swatch.getAttribute('data-color');
+        state.color = chosenColor;
+        document.querySelectorAll('.swatch-btn').forEach((s) => {
+          const isSelected = s.getAttribute('data-color') === chosenColor;
+          s.classList.remove('ring-2', 'ring-white', 'ring-offset-2', 'ring-offset-slate-900', 'opacity-85');
+          if (isSelected) {
+            s.classList.add('ring-2', 'ring-white', 'ring-offset-2', 'ring-offset-slate-900');
+          } else {
+            s.classList.add('opacity-85');
           }
-          if (glow) {
-            ctx.fillStyle = period === "night" ? "rgba(253, 224, 71, 0.72)" : "rgba(254, 215, 170, 0.65)";
-            ctx.fillRect(bx + 7, topY + 8, 5, 7);
-            if (b.w > 44) ctx.fillRect(bx + b.w - 12, topY + 8, 5, 7);
-          }
-        }
-        ctx.restore();
+        });
+      });
+    });
+
+    document.getElementById('undo-btn').addEventListener('click', () => {
+      if (state.shapes.length > 0) {
+        state.shapes.pop();
+        drawScene();
+        updateReadout('Undid last shape');
       }
-      function renderSingleDrawing(item) {
-        if (!ctx || !item) return;
-        ctx.save();
-        ctx.strokeStyle = item.color;
-        ctx.fillStyle = hexToRgba(item.color, 0.2);
-        ctx.lineWidth = 4;
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
-        if (item.kind === "line") {
-          ctx.beginPath(); ctx.moveTo(item.x1, item.y1); ctx.lineTo(item.x2, item.y2); ctx.stroke();
-        } else if (item.kind === "box") {
-          ctx.beginPath(); ctx.rect(Math.min(item.x1, item.x2), Math.min(item.y1, item.y2), Math.abs(item.x2 - item.x1), Math.abs(item.y2 - item.y1)); ctx.fill(); ctx.stroke();
-        } else if (
+    });
+
+    document.getElementById('clear-btn').addEventListener('click', () => {
+      state.shapes = [];
+      state.draftShape = null;
+      drawScene();
+      updateReadout('Cleared sketches');
+    });
+
+    // New Rainbow & Random Snack & Today's Vibe
+    document.getElementById('new-rainbow-btn').addEventListener('click', () => {
+      state.rainbow.paletteIndex = (state.rainbow.paletteIndex + 1) % RAINBOW_PALETTES.length;
+      state.rainbow.offsetX = (Math.random() - 0.5) * 60;
+      state.rainbow.offsetY = (Math.random() - 0.5) * 26;
+      state.rainbow.radiusScale = 0.88 + Math.random() * 0.24;
+      drawScene();
+      updateReadout(`New Rainbow #${state.rainbow.paletteIndex + 1}`);
+    });
+
+    document.getElementById('random-snack-btn').addEventListener('click', () => {
+      let nextIdx = Math.floor(Math.random() * SNACKS.length);
+      if (nextIdx === state.snackIndex && SNACKS.length > 1) {
+        nextIdx = (nextIdx + 1) % SNACKS.length;
+      }
+      state.snackIndex = nextIdx;
+      updateReadout('Fresh snack picked');
+    });
+
+    document.getElementById('today-vibe-btn').addEventListener('click', () => {
+      state.cityIndex = (state.cityIndex + 1) % CITIES.length;
+      const snack = SNACKS[state.snackIndex % SNACKS.length];
+      renderCitySkies();
+      updateReadout(`Vibe: ${snack.vibe}`);
+    });
+
+    // Pi Sign-In (Sandbox always true)
+    piSigninBtn.addEventListener('click', () => {
+      // SANDBOX_MODE is always true
+      if (!isSandbox()) return;
+      if (state.signedInUser) {
+        state.signedInUser = null;
+        piStatusText.textContent = 'Guest mode (not signed in)';
+        piSigninBtn.textContent = 'Sign in with Pi';
+      } else {
+        state.signedInUser = 'SandboxPioneer';
+        piStatusText.textContent = 'Signed in as SandboxPioneer (Sandbox ON)';
+        piSigninBtn.textContent = 'Sign out';
+      }
+      updateReadout();
+    });
+
+    // Copy public Pi wallet address
+    copyWalletBtn.addEventListener('click', () => {
+      try {
+        piWalletInput.select();
+        piWalletInput.setSelectionRange(0, piWalletInput.value.length);
+        let copied = false;
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          navigator.clipboard.writeText(piWalletInput.value).catch(() => {});
+          copied = true;
+        }
+        if (!copied) {
+          document.execCommand('copy');
+        }
+        copyFeedback.textContent = 'Copied public Pi wallet address to clipboard.';
+        setTimeout(() => {
+          copyFeedback.textContent = '';
+        }, 2500);
+      } catch (err) {
+        copyFeedback.textContent = 'Select and copy the address manually.';
+      }
+    });
+
+    // Gentle plane drift animation loop
+    let lastTime = 0;
+    function animate(timestamp) {
+      if (!lastTime) lastTime = timestamp;
+      const dt = Math.min(0.05, (timestamp - lastTime) / 1000);
+      lastTime = timestamp;
+
+      state.planeX += dt * 0.035;
+      if (state.planeX > 1.15) {
+        state.planeX = -0.15;
+      }
+
+      drawScene();
+      requestAnimationFrame(animate);
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // Initialize app on load with SANDBOX_MODE = true
+    window.addEventListener('load', () => {
+      sandboxBadge.setAttribute('aria-disabled', 'true');
+      renderCitySkies();
+      updateReadout();
+      resizeCanvas();
+      requestAnimationFrame(animate);
+    });
+  </script>
+</body>
+</html>
