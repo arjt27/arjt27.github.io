@@ -111,31 +111,7 @@
   (function () {
     function $(id) { return document.getElementById(id); }
     var cv = $("cv");
-    if (!cv || typeof cv.getContext !== "function") return;
-    var ctx = cv.getContext("2d");
-    if (!ctx) return;
-
-    function dist2D(ax, ay, bx, by) {
-      var dx = ax - bx;
-      var dy = ay - by;
-      return Math.sqrt(dx * dx + dy * dy);
-    }
-
-    function drawOval(x, y, rx, ry) {
-      var rX = Math.max(1, Math.abs(rx));
-      var rY = Math.max(1, Math.abs(ry));
-      if (typeof ctx.ellipse === "function") {
-        ctx.beginPath();
-        ctx.ellipse(x, y, rX, rY, 0, 0, Math.PI * 2);
-        return;
-      }
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.scale(rX, rY);
-      ctx.beginPath();
-      ctx.arc(0, 0, 1, 0, Math.PI * 2);
-      ctx.restore();
-    }
+    var ctx = cv && cv.getContext ? cv.getContext("2d") : null;
 
     var CITIES = [
       { name: "New York", tzOffset: -5, lat: 40.71, lon: -74.01, temp: "", weather: "", code: 0 },
@@ -151,14 +127,6 @@
     var BASES = ["rolled oats", "Greek yogurt", "cottage cheese", "kiwi slices", "toasted plantain", "air-fried banana peel", "hard-boiled eggs", "sliced apple", "rice cakes", "cucumber rounds", "popcorn", "roasted chickpeas"];
     var TOPPINGS = ["cinnamon & blueberries", "chia & honey drizzle", "sea salt & crushed peanuts", "citrus zest & warm spice", "everything seasoning & lemon", "dark cocoa nibs & sliced banana", "black pepper & herbs", "tahini & sesame seeds", "smoked paprika & lime", "matcha & almond slivers"];
     var FORMATS = ["bowl", "plate", "skillet bite", "parfait", "toast topper", "crunchy snack"];
-    var DAILY_SNACKS = [];
-    for (var bi = 0; bi < BASES.length; bi++) {
-      for (var ti = 0; ti < TOPPINGS.length; ti++) {
-        for (var fi = 0; fi < FORMATS.length; fi++) {
-          DAILY_SNACKS.push(FORMATS[fi] + " of " + BASES[bi] + " + " + TOPPINGS[ti]);
-        }
-      }
-    }
     var ROOFTOPS = [
       { x: 20, w: 46, h: 48, roof: "flat" }, { x: 72, w: 54, h: 68, roof: "pitched" },
       { x: 132, w: 40, h: 42, roof: "stepped" }, { x: 650, w: 48, h: 60, roof: "pitched" },
@@ -170,6 +138,12 @@
     var toolMode = "drag", drawColor = "#fef08a", drawings = [], activeShape = null, dragTarget = null;
     var dragLastX = 0, dragLastY = 0, hillLift = 0, hillShift = 0, activePointerId = null;
 
+    var scene = {
+      paletteName: PALETTES[0][0], colors: PALETTES[0][1], skyTop: "#0284c7", skyBot: "#38bdf8",
+      isNight: false, period: "day", cx: 440, cy: 420, bandWidth: 19, startRadius: 275,
+      orbX: 440, orbY: 90, clouds: [], stars: [], hills: [], trees: [], plane: null, hillRef: null
+    };
+
     function randInt(max) { return max <= 1 ? 0 : Math.floor(Math.random() * max); }
     function pickRandom(list) { return list[randInt(list.length)]; }
     function randRange(min, max) { return min + Math.random() * (max - min); }
@@ -178,10 +152,13 @@
       var d = new Date();
       return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
     }
+    function seededIndex(seedStr, mod) {
+      var n = 0;
+      for (var i = 0; i < seedStr.length; i++) n = (n * 37 + seedStr.charCodeAt(i)) % 1000003;
+      return mod > 0 ? n % mod : 0;
+    }
     function createSeededRng(seedStr) {
-      var sum = 0;
-      for (var i = 0; i < seedStr.length; i++) sum = (sum * 31 + seedStr.charCodeAt(i)) % 2147483647;
-      var cur = sum || 42;
+      var cur = seededIndex(seedStr, 2147483646) + 1;
       return function () {
         cur = (cur * 48271) % 2147483647;
         return cur / 2147483647;
@@ -190,10 +167,29 @@
     function hexToRgba(hex, alpha) {
       var clean = String(hex || "").replace("#", "");
       if (clean.length !== 6) return "rgba(254, 240, 138, " + alpha + ")";
-      var r = parseInt(clean.slice(0, 2), 16) || 254;
-      var g = parseInt(clean.slice(2, 4), 16) || 240;
-      var b = parseInt(clean.slice(4, 6), 16) || 138;
-      return "rgba(" + r + ", " + g + ", " + b + ", " + alpha + ")";
+      var r = parseInt(clean.slice(0, 2), 16);
+      var g = parseInt(clean.slice(2, 4), 16);
+      var b = parseInt(clean.slice(4, 6), 16);
+      return "rgba(" + (isNaN(r) ? 254 : r) + ", " + (isNaN(g) ? 240 : g) + ", " + (isNaN(b) ? 138 : b) + ", " + alpha + ")";
+    }
+    function dist2D(ax, ay, bx, by) {
+      var dx = ax - bx, dy = ay - by;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+    function drawOval(x, y, rx, ry) {
+      var rX = Math.max(1, Math.abs(rx)), rY = Math.max(1, Math.abs(ry));
+      if (ctx && typeof ctx.ellipse === "function") {
+        ctx.beginPath();
+        ctx.ellipse(x, y, rX, rY, 0, 0, Math.PI * 2);
+        return;
+      }
+      if (!ctx) return;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(rX, rY);
+      ctx.beginPath();
+      ctx.arc(0, 0, 1, 0, Math.PI * 2);
+      ctx.restore();
     }
     function getCityClock(tzOffset) {
       var now = new Date();
@@ -221,16 +217,16 @@
       if (period === "dawn" || period === "dusk") return code <= 2 ? ["#4c1d95", "#f97316", false] : (code <= 48 ? ["#334155", "#c2410c", false] : ["#1e293b", "#7c2d12", false]);
       return code <= 2 ? ["#0284c7", "#38bdf8", false] : (code <= 48 ? ["#334155", "#64748b", false] : ["#1e3a8a", "#0f172a", false]);
     }
-
     function buildSkyscapeProps(rngFn, weatherCode, period) {
+      var w = cv ? cv.width : 880;
       var cloudCount = weatherCode <= 2 ? 3 : (weatherCode <= 48 ? 5 : 4);
       var clouds = [];
       for (var ci = 0; ci < cloudCount; ci++) {
-        clouds.push({ x: rngFn() * cv.width, y: 72 + ci * 42 + rngFn() * 14, scale: 0.75 + rngFn() * 0.55, speed: 0.35 + rngFn() * 0.45 });
+        clouds.push({ x: rngFn() * w, y: 72 + ci * 42 + rngFn() * 14, scale: 0.75 + rngFn() * 0.55, speed: 0.35 + rngFn() * 0.45 });
       }
       var stars = [];
       for (var si = 0; si < 34; si++) {
-        stars.push({ x: rngFn() * cv.width, y: 18 + rngFn() * 185, radius: 1.5 + rngFn() * 2.2, phase: rngFn() * Math.PI * 2, twinkle: 0.045 + rngFn() * 0.05 });
+        stars.push({ x: rngFn() * w, y: 18 + rngFn() * 185, radius: 1.5 + rngFn() * 2.2, phase: rngFn() * Math.PI * 2, twinkle: 0.045 + rngFn() * 0.05 });
       }
       var hills = [
         { baseH: 44 + rngFn() * 14, amp: 18 + rngFn() * 10, freq: 0.007 + rngFn() * 0.003, offset: rngFn() * 10, color: "rgba(15, 23, 42, 0.55)" },
@@ -239,26 +235,20 @@
       var fracs = [0.14, 0.24, 0.76, 0.86];
       var trees = [];
       for (var ti = 0; ti < fracs.length; ti++) {
-        trees.push({ x: cv.width * fracs[ti] + (rngFn() * 20 - 10), scale: 0.8 + rngFn() * 0.3 + (ti % 2) * 0.06, canopy: period === "night" ? "#064e3b" : "#15803d" });
+        trees.push({ x: w * fracs[ti] + (rngFn() * 20 - 10), scale: 0.8 + rngFn() * 0.3 + (ti % 2) * 0.06, canopy: period === "night" ? "#064e3b" : "#15803d" });
       }
       var dir = rngFn() < 0.5 ? 1 : -1;
-      var plane = { x: dir === 1 ? -65 : cv.width + 65, y: 68 + rngFn() * 60, speed: (0.7 + rngFn() * 0.45) * dir, dir: dir, scale: 0.85 };
+      var plane = { x: dir === 1 ? -65 : w + 65, y: 68 + rngFn() * 60, speed: (0.7 + rngFn() * 0.45) * dir, dir: dir, scale: 0.85 };
       return { orbX: 130 + rngFn() * 620, orbY: 70 + rngFn() * 54, clouds: clouds, stars: stars, hills: hills, trees: trees, plane: plane, hillRef: hills[1] };
     }
-
-    var scene = {
-      paletteName: PALETTES[0][0], colors: PALETTES[0][1], skyTop: "#0284c7", skyBot: "#38bdf8",
-      isNight: false, period: "day", cx: 440, cy: 420, bandWidth: 19, startRadius: 275,
-      orbX: 440, orbY: 90, clouds: [], stars: [], hills: [], trees: [], plane: null, hillRef: null
-    };
-
     function hillSurfaceY(h, x, layerIdx) {
+      var hgt = cv ? cv.height : 460;
       var lift = layerIdx === 1 ? hillLift : hillLift * 0.5;
       var shift = layerIdx === 1 ? hillShift : hillShift * 0.5;
-      return cv.height - h.baseH - lift - Math.sin(x * h.freq + h.offset + shift) * h.amp;
+      return hgt - h.baseH - lift - Math.sin(x * h.freq + h.offset + shift) * h.amp;
     }
-
     function drawBuildings(period) {
+      if (!ctx || !cv) return;
       var groundY = cv.height - Math.max(8, hillLift * 0.3);
       var glow = period === "night" || period === "dusk";
       ctx.save();
@@ -282,9 +272,8 @@
       }
       ctx.restore();
     }
-
     function renderSingleDrawing(item) {
-      if (!item) return;
+      if (!ctx || !item) return;
       ctx.save();
       ctx.strokeStyle = item.color;
       ctx.fillStyle = hexToRgba(item.color, 0.2);
@@ -307,15 +296,14 @@
       if (!box) return;
       var html = "";
       for (var idx = 0; idx < CITIES.length; idx++) {
-        var c = CITIES[idx];
-        html += '<button type="button" class="chip' + (idx === cityIdx ? " on" : "") + '" data-idx="' + idx + '">' + c.name + "</button>";
+        html += '<button type="button" class="chip' + (idx === cityIdx ? " on" : "") + '" data-idx="' + idx + '">' + CITIES[idx].name + "</button>";
       }
       box.innerHTML = html;
       var chips = box.querySelectorAll(".chip");
       for (var ci = 0; ci < chips.length; ci++) {
-        (function (btn) {
-          btn.onclick = function () { enterFreeRoll(Number(btn.getAttribute("data-idx"))); };
-        })(chips[ci]);
+        chips[ci].onclick = (function (nextI) {
+          return function () { enterFreeRoll(nextI); };
+        })(Number(chips[ci].getAttribute("data-idx")));
       }
     }
 
@@ -343,7 +331,8 @@
     }
 
     function generateRandomScene() {
-      applyScene(pickRandom(PALETTES), cv.width / 2 + randRange(-50, 50), cv.height - randRange(25, 55), 19, randRange(240, 310), Math.random);
+      var w = cv ? cv.width : 880, h = cv ? cv.height : 460;
+      applyScene(pickRandom(PALETTES), w / 2 + randRange(-50, 50), h - randRange(25, 55), 19, randRange(240, 310), Math.random);
     }
 
     function enterFreeRoll(nextIdx) {
@@ -355,7 +344,7 @@
     }
 
     function drawFrame() {
-      try {
+      if (ctx && cv) {
         var city = CITIES[cityIdx] || CITIES[0];
         var grad = ctx.createLinearGradient(0, 0, 0, cv.height);
         grad.addColorStop(0, scene.skyTop);
@@ -426,75 +415,4 @@
         }
 
         drawBuildings(scene.period);
-        if (scene.hills && scene.hills.length) {
-          for (var hi = 0; hi < scene.hills.length; hi++) {
-            var h = scene.hills[hi];
-            ctx.beginPath();
-            ctx.moveTo(0, cv.height);
-            for (var x = 0; x <= cv.width; x += 16) ctx.lineTo(x, hillSurfaceY(h, x, hi));
-            ctx.lineTo(cv.width, cv.height);
-            ctx.closePath();
-            ctx.fillStyle = h.color;
-            ctx.fill();
-          }
-        }
-        if (scene.hillRef && scene.trees && scene.trees.length) {
-          for (var tri = 0; tri < scene.trees.length; tri++) {
-            var tr = scene.trees[tri];
-            ctx.save();
-            ctx.translate(tr.x, hillSurfaceY(scene.hillRef, tr.x, 1) + 2);
-            ctx.scale(tr.scale, tr.scale);
-            ctx.fillStyle = "#1e1b18";
-            ctx.fillRect(-2.5, -11, 5, 12);
-            ctx.fillStyle = tr.canopy;
-            ctx.beginPath();
-            ctx.arc(0, -17, 9.5, 0, Math.PI * 2);
-            ctx.arc(-6.5, -12.5, 7, 0, Math.PI * 2);
-            ctx.arc(6.5, -12.5, 7, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-          }
-        }
-        for (var di = 0; di < drawings.length; di++) renderSingleDrawing(drawings[di]);
-        if (activeShape) renderSingleDrawing(activeShape);
-      } catch (_err) {}
-      if (typeof window.requestAnimationFrame === "function") {
-        window.requestAnimationFrame(drawFrame);
-      } else {
-        window.setTimeout(drawFrame, 33);
-      }
-    }
-
-    function setToolMode(nextMode) {
-      toolMode = nextMode;
-      var modes = ["drag", "line", "oval", "box"];
-      var ids = ["modeDrag", "modeLine", "modeOval", "modeBox"];
-      for (var i = 0; i < modes.length; i++) {
-        var el = $(ids[i]);
-        if (el) el.classList.toggle("on", modes[i] === nextMode);
-      }
-      cv.classList.toggle("draw-mode", nextMode !== "drag");
-    }
-    function toCanvasCoords(ev) {
-      var r = cv.getBoundingClientRect();
-      if (!r.width || !r.height) return { x: 0, y: 0 };
-      return { x: ((ev.clientX - r.left) / r.width) * cv.width, y: ((ev.clientY - r.top) / r.height) * cv.height };
-    }
-    function hitsRainbow(x, y) {
-      var dist = dist2D(x, y, scene.cx, scene.cy);
-      var outer = scene.startRadius + scene.bandWidth;
-      var inner = Math.max(16, scene.startRadius - scene.colors.length * (scene.bandWidth - 1) - scene.bandWidth);
-      return y <= scene.cy + 14 && dist >= inner && dist <= outer;
-    }
-
-    cv.addEventListener("pointerdown", function (ev) {
-      activePointerId = ev.pointerId;
-      if (typeof cv.setPointerCapture === "function") { try { cv.setPointerCapture(ev.pointerId); } catch (e) {} }
-      var pt = toCanvasCoords(ev);
-      if (toolMode !== "drag") { activeShape = { kind: toolMode, color: drawColor, x1: pt.x, y1: pt.y, x2: pt.x, y2: pt.y }; return; }
-      dragLastX = pt.x; dragLastY = pt.y; dragTarget = hitsRainbow(pt.x, pt.y) ? "rainbow" : "hills"; cv.classList.add("dragging");
-    });
-    cv.addEventListener("pointermove", function (ev) {
-      if (activePointerId !== null && ev.pointerId !== activePointerId) return;
-      var pt = toCanvasCoords(ev);
-      if (activeShape) { activeShape.x2 = pt.x;
+        if (scene.hills && scene
