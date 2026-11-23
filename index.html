@@ -1,5 +1,5 @@
 <!--
-  Rainbow and Bites (v0.155)
+  Rainbow and Bites (v0.156)
   Free to use and share under the GNU General Public License (GPL).
   If you reuse or adapt this code, please keep all social links intact.
 -->
@@ -61,7 +61,7 @@
 <body>
   <main class="app">
     <header class="app-hdr"><strong>GNU General Public License (GPL):</strong> Free to use &amp; share — please keep all social links intact if reused.</header>
-    <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.155</span></div>
+    <div class="top"><span>Rainbow and Bites</span><span class="ver">v0.156</span></div>
     <div class="daily-bar"><span id="dailyLabel">Daily Sky &amp; Bite</span><button class="daily-btn" id="dailyBtn" type="button">Today's Vibe</button></div>
     <div class="row" id="wx"></div>
     <div class="tool-bar" aria-label="Skyscape drawing tools">
@@ -142,7 +142,7 @@
 
     let cityIdx = 0, snackBag = [], lastSnack = "", isDaily = true, signedInUser = "", sandboxMode = true;
     let toolMode = "drag", drawColor = "#fef08a", drawings = [], activeShape = null, dragTarget = null;
-    let dragLastX = 0, dragLastY = 0, hillLift = 0, hillShift = 0, rafId = 0;
+    let dragLastX = 0, dragLastY = 0, hillLift = 0, hillShift = 0, activePointerId = null;
     let scene = { paletteName: "Classic", colors: PALETTES[0][1], skyTop: "#0284c7", skyBot: "#38bdf8", isNight: false, period: "day", cx: 440, cy: 420, bandWidth: 19, startRadius: 275, orbX: 720, orbY: 88, clouds: [], stars: [], hills: [], trees: [], plane: { x: -70, y: 84, speed: 0.85, dir: 1, scale: 0.9 }, hillRef: null };
 
     function randInt(max) {
@@ -220,9 +220,9 @@
     function drawBuildings(period) {
       const groundY = cv.height - Math.max(8, hillLift * 0.3), glow = period === "night" || period === "dusk";
       ctx.save();
-      ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
       for (const b of ROOFTOPS) {
         const bx = b.x + hillShift * 5, topY = groundY - b.h;
+        ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
         ctx.fillRect(bx, topY, b.w, b.h + 10);
         if (b.roof === "pitched") {
           ctx.beginPath(); ctx.moveTo(bx - 3, topY); ctx.lineTo(bx + b.w * 0.5, topY - 10); ctx.lineTo(bx + b.w + 3, topY); ctx.closePath(); ctx.fill();
@@ -233,7 +233,6 @@
           ctx.fillStyle = period === "night" ? "rgba(253, 224, 71, 0.72)" : "rgba(254, 215, 170, 0.65)";
           ctx.fillRect(bx + 7, topY + 8, 5, 7);
           if (b.w > 44) ctx.fillRect(bx + b.w - 12, topY + 8, 5, 7);
-          ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
         }
       }
       ctx.restore();
@@ -243,11 +242,14 @@
       if (!item) return;
       ctx.save();
       ctx.strokeStyle = item.color; ctx.fillStyle = item.color + "33"; ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.lineJoin = "round";
-      ctx.beginPath();
-      if (item.kind === "line") { ctx.moveTo(item.x1, item.y1); ctx.lineTo(item.x2, item.y2); }
-      else if (item.kind === "box") { ctx.rect(Math.min(item.x1, item.x2), Math.min(item.y1, item.y2), Math.abs(item.x2 - item.x1), Math.abs(item.y2 - item.y1)); ctx.fill(); }
-      else if (item.kind === "oval") { ctx.ellipse((item.x1 + item.x2) / 2, (item.y1 + item.y2) / 2, Math.max(4, Math.abs(item.x2 - item.x1) / 2), Math.max(4, Math.abs(item.y2 - item.y1) / 2), 0, 0, Math.PI * 2); ctx.fill(); }
-      ctx.stroke(); ctx.restore();
+      if (item.kind === "line") {
+        ctx.beginPath(); ctx.moveTo(item.x1, item.y1); ctx.lineTo(item.x2, item.y2); ctx.stroke();
+      } else if (item.kind === "box") {
+        ctx.beginPath(); ctx.rect(Math.min(item.x1, item.x2), Math.min(item.y1, item.y2), Math.abs(item.x2 - item.x1), Math.abs(item.y2 - item.y1)); ctx.fill(); ctx.stroke();
+      } else if (item.kind === "oval") {
+        ctx.beginPath(); ctx.ellipse((item.x1 + item.x2) / 2, (item.y1 + item.y2) / 2, Math.max(4, Math.abs(item.x2 - item.x1) / 2), Math.max(4, Math.abs(item.y2 - item.y1) / 2), 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      }
+      ctx.restore();
     }
 
     function renderCityChips() {
@@ -341,7 +343,7 @@
       }
       for (const item of drawings) renderSingleDrawing(item);
       if (activeShape) renderSingleDrawing(activeShape);
-      if (rafId) rafId = window.requestAnimationFrame(drawFrame);
+      window.requestAnimationFrame(drawFrame);
     }
 
     function setToolMode(nextMode) {
@@ -363,11 +365,16 @@
     }
 
     cv.addEventListener("pointerdown", (ev) => {
+      activePointerId = ev.pointerId;
+      if (typeof cv.setPointerCapture === "function") {
+        try { cv.setPointerCapture(ev.pointerId); } catch {}
+      }
       const pt = toCanvasCoords(ev);
       if (toolMode !== "drag") { activeShape = { kind: toolMode, color: drawColor, x1: pt.x, y1: pt.y, x2: pt.x, y2: pt.y }; return; }
       dragLastX = pt.x; dragLastY = pt.y; dragTarget = hitsRainbow(pt.x, pt.y) ? "rainbow" : "hills"; cv.classList.add("dragging");
     });
-    window.addEventListener("pointermove", (ev) => {
+    cv.addEventListener("pointermove", (ev) => {
+      if (activePointerId !== null && ev.pointerId !== activePointerId) return;
       const pt = toCanvasCoords(ev);
       if (activeShape) { activeShape.x2 = pt.x; activeShape.y2 = pt.y; return; }
       if (!dragTarget) return;
@@ -381,10 +388,17 @@
         hillShift += dx * 0.012;
       }
     });
-    window.addEventListener("pointerup", () => {
+    function finishPointer(ev) {
+      if (activePointerId !== null && ev && ev.pointerId !== activePointerId) return;
+      if (activePointerId !== null && typeof cv.releasePointerCapture === "function") {
+        try { cv.releasePointerCapture(activePointerId); } catch {}
+      }
+      activePointerId = null;
       if (activeShape && Math.hypot(activeShape.x2 - activeShape.x1, activeShape.y2 - activeShape.y1) >= 4) drawings.push(activeShape);
       activeShape = null; dragTarget = null; cv.classList.remove("dragging");
-    });
+    }
+    cv.addEventListener("pointerup", finishPointer);
+    cv.addEventListener("pointercancel", finishPointer);
     cv.addEventListener("dblclick", () => { hillLift = 0; hillShift = 0; if (isDaily) applyDailyVibe(); else generateRandomScene(); });
 
     if ($("modeDrag")) $("modeDrag").onclick = () => setToolMode("drag");
@@ -483,4 +497,31 @@
         } finally { if (btnEl) btnEl.disabled = false; }
       };
     }
-    if ($("piClearBtn")) $("piClearBtn").onclick = () => { signedInUser = ""; syncPiAuth
+    if ($("piClearBtn")) $("piClearBtn").onclick = () => { signedInUser = ""; syncPiAuthUI(); };
+    if ($("dailyBtn")) $("dailyBtn").onclick = applyDailyVibe;
+    if ($("gen")) $("gen").onclick = () => enterFreeRoll((cityIdx + 1) % CITIES.length);
+    if ($("sBtn")) $("sBtn").onclick = nextSnack;
+    if ($("snack")) $("snack").onclick = nextSnack;
+
+    syncPiAuthUI();
+    applyDailyVibe();
+    window.requestAnimationFrame(drawFrame);
+
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${CITIES.map((c) => c.lat).join(",")}&longitude=${CITIES.map((c) => c.lon).join(",")}&current=temperature_2m,weather_code`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data) return;
+        (Array.isArray(data) ? data : [data]).forEach((entry, idx) => {
+          if (entry && entry.current && CITIES[idx]) {
+            CITIES[idx].temp = Math.round(entry.current.temperature_2m) + "°C";
+            CITIES[idx].code = entry.current.weather_code;
+            CITIES[idx].weather = weatherLabel(entry.current.weather_code);
+          }
+        });
+        renderCityChips();
+        if (isDaily) applyDailyVibe(); else generateRandomScene();
+      }).catch(() => {});
+  })();
+  </script>
+</body>
+</html>
