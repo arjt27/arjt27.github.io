@@ -36,7 +36,7 @@
     .t-btn.on { background: #4c1d95; border-color: #a78bfa; color: #fff; }
     .swatch { width: 18px; height: 18px; border-radius: 999px; border: 2px solid transparent; padding: 0; cursor: pointer; }
     .swatch.on { border-color: #fff; transform: scale(1.12); }
-    canvas { width: 100%; height: 230px; border-radius: 14px; background: #1e293b; display: block; touch-action: none; cursor: grab; }
+    canvas { width: 100%; height: 230px; border-radius: 14px; background: #0284c7; display: block; touch-action: none; cursor: grab; }
     canvas.draw-mode { cursor: crosshair; }
     canvas.dragging { cursor: grabbing; }
     #cap { font-size: 0.85rem; color: #e2e8f0; min-height: 1.2em; }
@@ -104,79 +104,95 @@
   </main>
 
   <script>
-  (() => {
-    const $ = (id) => document.getElementById(id);
-    const cv = $("cv"), ctx = cv && cv.getContext ? cv.getContext("2d") : null;
-    if (!cv || !ctx) return;
+  (function () {
+    function $(id) { return document.getElementById(id); }
+    var cv = $("cv");
+    if (!cv || typeof cv.getContext !== "function") return;
+    var ctx = cv.getContext("2d");
+    if (!ctx) return;
 
-    const CITIES = [
+    var CITIES = [
       { name: "New York", tzOffset: -5, lat: 40.71, lon: -74.01, temp: "", weather: "", code: 0 },
       { name: "Chicago", tzOffset: -6, lat: 41.88, lon: -87.63, temp: "", weather: "", code: 0 },
       { name: "Los Angeles", tzOffset: -8, lat: 34.05, lon: -118.24, temp: "", weather: "", code: 0 }
     ];
-    const PALETTES = [
+    var PALETTES = [
       ["Classic", ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#8b5cf6"]],
       ["Pastel", ["#fda4af", "#fdba74", "#fde047", "#86efac", "#93c5fd", "#d8b4fe"]],
       ["Neon", ["#ff007f", "#ff5e00", "#ffe600", "#00ff9d", "#00d9ff", "#b829ff"]],
       ["Sunset", ["#9f1239", "#e11d48", "#f97316", "#fbbf24", "#fef08a"]]
     ];
-    const BASES = ["rolled oats", "Greek yogurt", "cottage cheese", "kiwi slices", "toasted plantain", "air-fried banana peel", "hard-boiled eggs", "sliced apple", "rice cakes", "cucumber rounds", "popcorn", "roasted chickpeas"];
-    const TOPPINGS = ["cinnamon & blueberries", "chia & honey drizzle", "sea salt & crushed peanuts", "citrus zest & warm spice", "everything seasoning & lemon", "dark cocoa nibs & sliced banana", "black pepper & herbs", "tahini & sesame seeds", "smoked paprika & lime", "matcha & almond slivers"];
-    const FORMATS = ["bowl", "plate", "skillet bite", "parfait", "toast topper", "crunchy snack"];
-    const DAILY_SNACKS = BASES.flatMap((b) => TOPPINGS.flatMap((t) => FORMATS.map((f) => `${f} of ${b} + ${t}`)));
-    const ROOFTOPS = [
+    var BASES = ["rolled oats", "Greek yogurt", "cottage cheese", "kiwi slices", "toasted plantain", "air-fried banana peel", "hard-boiled eggs", "sliced apple", "rice cakes", "cucumber rounds", "popcorn", "roasted chickpeas"];
+    var TOPPINGS = ["cinnamon & blueberries", "chia & honey drizzle", "sea salt & crushed peanuts", "citrus zest & warm spice", "everything seasoning & lemon", "dark cocoa nibs & sliced banana", "black pepper & herbs", "tahini & sesame seeds", "smoked paprika & lime", "matcha & almond slivers"];
+    var FORMATS = ["bowl", "plate", "skillet bite", "parfait", "toast topper", "crunchy snack"];
+    var DAILY_SNACKS = [];
+    for (var bi = 0; bi < BASES.length; bi++) {
+      for (var ti = 0; ti < TOPPINGS.length; ti++) {
+        for (var fi = 0; fi < FORMATS.length; fi++) {
+          DAILY_SNACKS.push(FORMATS[fi] + " of " + BASES[bi] + " + " + TOPPINGS[ti]);
+        }
+      }
+    }
+    var ROOFTOPS = [
       { x: 20, w: 46, h: 48, roof: "flat" }, { x: 72, w: 54, h: 68, roof: "pitched" },
       { x: 132, w: 40, h: 42, roof: "stepped" }, { x: 650, w: 48, h: 60, roof: "pitched" },
       { x: 704, w: 54, h: 76, roof: "stepped" }, { x: 764, w: 46, h: 46, roof: "flat" },
       { x: 816, w: 44, h: 56, roof: "pitched" }
     ];
 
-    let cityIdx = 0, snackBag = [], lastSnack = "", isDaily = true, signedInUser = "";
-    let toolMode = "drag", drawColor = "#fef08a", drawings = [], activeShape = null, dragTarget = null;
-    let dragLastX = 0, dragLastY = 0, hillLift = 0, hillShift = 0, activePointerId = null;
+    var cityIdx = 0, snackBag = [], lastSnack = "", isDaily = true, signedInUser = "";
+    var toolMode = "drag", drawColor = "#fef08a", drawings = [], activeShape = null, dragTarget = null;
+    var dragLastX = 0, dragLastY = 0, hillLift = 0, hillShift = 0, activePointerId = null;
 
     function randInt(max) {
       if (max <= 1) return 0;
       if (window.crypto && typeof window.crypto.getRandomValues === "function") {
-        const arr = new Uint32Array(1), limit = Math.floor(0x100000000 / max) * max;
-        let v = 0;
+        var arr = new Uint32Array(1);
+        var limit = Math.floor(4294967296 / max) * max;
+        var v = 0;
         do { window.crypto.getRandomValues(arr); v = arr[0]; } while (v >= limit);
         return v % max;
       }
       return Math.floor(Math.random() * max);
     }
-    const pickRandom = (list) => list[randInt(list.length)];
-    const randRange = (min, max) => min + (randInt(10000) / 10000) * (max - min);
-    const getDayKey = () => {
-      const d = new Date();
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    };
+    function pickRandom(list) { return list[randInt(list.length)]; }
+    function randRange(min, max) { return min + (randInt(10000) / 10000) * (max - min); }
+    function pad2(n) { return n < 10 ? "0" + n : String(n); }
+    function getDayKey() {
+      var d = new Date();
+      return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+    }
     function createSeededRng(seedStr) {
-      let h = 2166136261 >>> 0;
-      for (let i = 0; i < seedStr.length; i++) { h ^= seedStr.charCodeAt(i); h = Math.imul(h, 16777619); }
-      return () => {
-        h = (h + 0x6d2b79f5) >>> 0;
-        let t = Math.imul(h ^ (h >>> 15), 1 | h);
-        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      var h = 2166136261 >>> 0;
+      for (var i = 0; i < seedStr.length; i++) {
+        h ^= seedStr.charCodeAt(i);
+        h = (h * 16777619) >>> 0;
+      }
+      return function () {
+        h = (h + 1831565813) >>> 0;
+        var t = Math.imul ? Math.imul(h ^ (h >>> 15), 1 | h) : ((h ^ (h >>> 15)) * (1 | h)) >>> 0;
+        t = ((t + (Math.imul ? Math.imul(t ^ (t >>> 7), 61 | t) : ((t ^ (t >>> 7)) * (61 | t)))) ^ t) >>> 0;
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
       };
     }
 
     function hexToRgba(hex, alpha) {
-      const clean = (hex || "").replace("#", "");
-      if (clean.length !== 6) return `rgba(254, 240, 138, ${alpha})`;
-      const r = parseInt(clean.slice(0, 2), 16);
-      const g = parseInt(clean.slice(2, 4), 16);
-      const b = parseInt(clean.slice(4, 6), 16);
-      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      var clean = String(hex || "").replace("#", "");
+      if (clean.length !== 6) return "rgba(254, 240, 138, " + alpha + ")";
+      var r = parseInt(clean.slice(0, 2), 16) || 254;
+      var g = parseInt(clean.slice(2, 4), 16) || 240;
+      var b = parseInt(clean.slice(4, 6), 16) || 138;
+      return "rgba(" + r + ", " + g + ", " + b + ", " + alpha + ")";
     }
 
     function getCityClock(tzOffset) {
-      const now = new Date();
-      const local = new Date(now.getTime() + now.getTimezoneOffset() * 60000 + tzOffset * 3600000);
-      const hour = local.getHours() + local.getMinutes() / 60;
-      const period = hour >= 6 && hour < 8.5 ? "dawn" : hour >= 17 && hour < 20 ? "dusk" : (hour < 6 || hour >= 20 ? "night" : "day");
-      return { period, label: `${local.getHours() % 12 || 12}:${String(local.getMinutes()).padStart(2, "0")} ${local.getHours() >= 12 ? "PM" : "AM"}` };
+      var now = new Date();
+      var local = new Date(now.getTime() + now.getTimezoneOffset() * 60000 + tzOffset * 3600000);
+      var hour = local.getHours() + local.getMinutes() / 60;
+      var period = hour >= 6 && hour < 8.5 ? "dawn" : hour >= 17 && hour < 20 ? "dusk" : (hour < 6 || hour >= 20 ? "night" : "day");
+      var h12 = local.getHours() % 12 || 12;
+      var ampm = local.getHours() >= 12 ? "PM" : "AM";
+      return { period: period, label: h12 + ":" + pad2(local.getMinutes()) + " " + ampm };
     }
     function weatherLabel(code) {
       if (code === 0) return "Clear";
@@ -197,20 +213,46 @@
     }
 
     function buildSkyscapeProps(rngFn, weatherCode, period) {
-      const cloudCount = weatherCode <= 2 ? 3 : (weatherCode <= 48 ? 5 : 4);
-      const clouds = Array.from({ length: cloudCount }, (_, i) => ({ x: rngFn() * cv.width, y: 72 + i * 42 + rngFn() * 14, scale: 0.75 + rngFn() * 0.55, speed: 0.35 + rngFn() * 0.45 }));
-      const stars = Array.from({ length: 34 }, () => ({ x: rngFn() * cv.width, y: 18 + rngFn() * 185, radius: 1.5 + rngFn() * 2.2, phase: rngFn() * Math.PI * 2, twinkle: 0.045 + rngFn() * 0.05 }));
-      const hills = [
+      var cloudCount = weatherCode <= 2 ? 3 : (weatherCode <= 48 ? 5 : 4);
+      var clouds = [];
+      for (var ci = 0; ci < cloudCount; ci++) {
+        clouds.push({
+          x: rngFn() * cv.width,
+          y: 72 + ci * 42 + rngFn() * 14,
+          scale: 0.75 + rngFn() * 0.55,
+          speed: 0.35 + rngFn() * 0.45
+        });
+      }
+      var stars = [];
+      for (var si = 0; si < 34; si++) {
+        stars.push({
+          x: rngFn() * cv.width,
+          y: 18 + rngFn() * 185,
+          radius: 1.5 + rngFn() * 2.2,
+          phase: rngFn() * Math.PI * 2,
+          twinkle: 0.045 + rngFn() * 0.05
+        });
+      }
+      var hills = [
         { baseH: 44 + rngFn() * 14, amp: 18 + rngFn() * 10, freq: 0.007 + rngFn() * 0.003, offset: rngFn() * 10, color: "rgba(15, 23, 42, 0.55)" },
         { baseH: 24 + rngFn() * 10, amp: 11 + rngFn() * 8, freq: 0.012 + rngFn() * 0.004, offset: rngFn() * 10, color: "rgba(2, 6, 23, 0.88)" }
       ];
-      const trees = [0.14, 0.24, 0.76, 0.86].map((frac, idx) => ({ x: cv.width * frac + (rngFn() * 20 - 10), scale: 0.8 + rngFn() * 0.3 + (idx % 2) * 0.06, canopy: period === "night" ? "#064e3b" : "#15803d" }));
-      const dir = rngFn() < 0.5 ? 1 : -1;
-      const plane = { x: dir === 1 ? -65 : cv.width + 65, y: 68 + rngFn() * 60, speed: (0.7 + rngFn() * 0.45) * dir, dir, scale: 0.85 };
-      return { orbX: 130 + rngFn() * 620, orbY: 70 + rngFn() * 54, clouds, stars, hills, trees, plane, hillRef: hills[1] };
+      var fracs = [0.14, 0.24, 0.76, 0.86];
+      var trees = [];
+      for (var ti = 0; ti < fracs.length; ti++) {
+        trees.push({
+          x: cv.width * fracs[ti] + (rngFn() * 20 - 10),
+          scale: 0.8 + rngFn() * 0.3 + (ti % 2) * 0.06,
+          canopy: period === "night" ? "#064e3b" : "#15803d"
+        });
+      }
+      var dir = rngFn() < 0.5 ? 1 : -1;
+      var plane = { x: dir === 1 ? -65 : cv.width + 65, y: 68 + rngFn() * 60, speed: (0.7 + rngFn() * 0.45) * dir, dir: dir, scale: 0.85 };
+      return { orbX: 130 + rngFn() * 620, orbY: 70 + rngFn() * 54, clouds: clouds, stars: stars, hills: hills, trees: trees, plane: plane, hillRef: hills[1] };
     }
 
-    let scene = {
+    var initProps = buildSkyscapeProps(function () { return randRange(0, 1); }, 0, "day");
+    var scene = {
       paletteName: PALETTES[0][0],
       colors: PALETTES[0][1],
       skyTop: "#0284c7",
@@ -221,26 +263,37 @@
       cy: 420,
       bandWidth: 19,
       startRadius: 275,
-      ...buildSkyscapeProps(() => Math.random(), 0, "day")
+      orbX: initProps.orbX,
+      orbY: initProps.orbY,
+      clouds: initProps.clouds,
+      stars: initProps.stars,
+      hills: initProps.hills,
+      trees: initProps.trees,
+      plane: initProps.plane,
+      hillRef: initProps.hillRef
     };
 
     function hillSurfaceY(h, x, layerIdx) {
-      const lift = layerIdx === 1 ? hillLift : hillLift * 0.5;
-      const shift = layerIdx === 1 ? hillShift : hillShift * 0.5;
+      var lift = layerIdx === 1 ? hillLift : hillLift * 0.5;
+      var shift = layerIdx === 1 ? hillShift : hillShift * 0.5;
       return cv.height - h.baseH - lift - Math.sin(x * h.freq + h.offset + shift) * h.amp;
     }
 
     function drawBuildings(period) {
-      const groundY = cv.height - Math.max(8, hillLift * 0.3), glow = period === "night" || period === "dusk";
+      var groundY = cv.height - Math.max(8, hillLift * 0.3);
+      var glow = period === "night" || period === "dusk";
       ctx.save();
-      for (const b of ROOFTOPS) {
-        const bx = b.x + hillShift * 5, topY = groundY - b.h;
+      for (var i = 0; i < ROOFTOPS.length; i++) {
+        var b = ROOFTOPS[i];
+        var bx = b.x + hillShift * 5;
+        var topY = groundY - b.h;
         ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
         ctx.fillRect(bx, topY, b.w, b.h + 10);
         if (b.roof === "pitched") {
           ctx.beginPath(); ctx.moveTo(bx - 3, topY); ctx.lineTo(bx + b.w * 0.5, topY - 10); ctx.lineTo(bx + b.w + 3, topY); ctx.closePath(); ctx.fill();
         } else if (b.roof === "stepped") {
-          const sw = b.w * 0.45; ctx.fillRect(bx + (b.w - sw) * 0.5, topY - 7, sw, 7);
+          var sw = b.w * 0.45;
+          ctx.fillRect(bx + (b.w - sw) * 0.5, topY - 7, sw, 7);
         }
         if (glow) {
           ctx.fillStyle = period === "night" ? "rgba(253, 224, 71, 0.72)" : "rgba(254, 215, 170, 0.65)";
@@ -254,69 +307,102 @@
     function renderSingleDrawing(item) {
       if (!item) return;
       ctx.save();
-      ctx.strokeStyle = item.color; ctx.fillStyle = hexToRgba(item.color, 0.2); ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.lineJoin = "round";
+      ctx.strokeStyle = item.color;
+      ctx.fillStyle = hexToRgba(item.color, 0.2);
+      ctx.lineWidth = 4;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
       if (item.kind === "line") {
         ctx.beginPath(); ctx.moveTo(item.x1, item.y1); ctx.lineTo(item.x2, item.y2); ctx.stroke();
       } else if (item.kind === "box") {
         ctx.beginPath(); ctx.rect(Math.min(item.x1, item.x2), Math.min(item.y1, item.y2), Math.abs(item.x2 - item.x1), Math.abs(item.y2 - item.y1)); ctx.fill(); ctx.stroke();
       } else if (item.kind === "oval") {
-        ctx.beginPath(); ctx.ellipse((item.x1 + item.x2) / 2, (item.y1 + item.y2) / 2, Math.max(4, Math.abs(item.x2 - item.x1) / 2), Math.max(4, Math.abs(item.y2 - item.y1) / 2), 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.beginPath();
+        ctx.ellipse((item.x1 + item.x2) / 2, (item.y1 + item.y2) / 2, Math.max(4, Math.abs(item.x2 - item.x1) / 2), Math.max(4, Math.abs(item.y2 - item.y1) / 2), 0, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
       }
       ctx.restore();
     }
 
     function renderCityChips() {
-      const box = $("wx");
+      var box = $("wx");
       if (!box) return;
-      box.innerHTML = CITIES.map((c, idx) => {
-        const meta = [c.weather, c.temp, getCityClock(c.tzOffset).label].filter(Boolean).join(" • ");
-        return `<button type="button" class="chip${idx === cityIdx ? " on" : ""}" data-idx="${idx}">${c.name}${meta ? " · " + meta : ""}</button>`;
-      }).join("");
-      box.querySelectorAll(".chip").forEach((btn) => { btn.onclick = () => enterFreeRoll(Number(btn.dataset.idx)); });
+      var html = "";
+      for (var idx = 0; idx < CITIES.length; idx++) {
+        var c = CITIES[idx];
+        var parts = [c.weather, c.temp, getCityClock(c.tzOffset).label].filter(Boolean);
+        var meta = parts.join(" • ");
+        html += '<button type="button" class="chip' + (idx === cityIdx ? " on" : "") + '" data-idx="' + idx + '">' + c.name + (meta ? " · " + meta : "") + "</button>";
+      }
+      box.innerHTML = html;
+      var chips = box.querySelectorAll(".chip");
+      for (var ci = 0; ci < chips.length; ci++) {
+        (function (btn) {
+          btn.onclick = function () { enterFreeRoll(Number(btn.getAttribute("data-idx"))); };
+        })(chips[ci]);
+      }
     }
 
     function applyScene(paletteTuple, cx, cy, bandWidth, startRadius, rngFn) {
-      const city = CITIES[cityIdx] || CITIES[0], clk = getCityClock(city.tzOffset);
-      const [skyTop, skyBot, isNight] = computeSkyPalette(city.code, clk.period);
+      var city = CITIES[cityIdx] || CITIES[0];
+      var clk = getCityClock(city.tzOffset);
+      var palInfo = computeSkyPalette(city.code, clk.period);
+      var props = buildSkyscapeProps(rngFn || function () { return randRange(0, 1); }, city.code, clk.period);
       scene = {
         paletteName: paletteTuple[0],
         colors: paletteTuple[1],
-        skyTop,
-        skyBot,
-        isNight,
+        skyTop: palInfo[0],
+        skyBot: palInfo[1],
+        isNight: palInfo[2],
         period: clk.period,
-        cx,
-        cy,
-        bandWidth,
-        startRadius,
-        ...buildSkyscapeProps(rngFn || (() => randRange(0, 1)), city.code, clk.period)
+        cx: cx,
+        cy: cy,
+        bandWidth: bandWidth,
+        startRadius: startRadius,
+        orbX: props.orbX,
+        orbY: props.orbY,
+        clouds: props.clouds,
+        stars: props.stars,
+        hills: props.hills,
+        trees: props.trees,
+        plane: props.plane,
+        hillRef: props.hillRef
       };
-      const weatherText = [city.weather, city.temp, clk.label].filter(Boolean).join(", ");
-      if ($("cap")) $("cap").textContent = weatherText ? `${isDaily ? "Daily " : ""}${city.name} (${weatherText}) • ${scene.paletteName}` : `${isDaily ? "Daily " : ""}${city.name} • ${scene.paletteName}`;
+      var weatherText = [city.weather, city.temp, clk.label].filter(Boolean).join(", ");
+      if ($("cap")) {
+        $("cap").textContent = weatherText
+          ? (isDaily ? "Daily " : "") + city.name + " (" + weatherText + ") • " + scene.paletteName
+          : (isDaily ? "Daily " : "") + city.name + " • " + scene.paletteName;
+      }
     }
 
     function generateRandomScene() {
-      applyScene(pickRandom(PALETTES), cv.width / 2 + randRange(-50, 50), cv.height - randRange(25, 55), 19, randRange(240, 310), () => randRange(0, 1));
+      applyScene(pickRandom(PALETTES), cv.width / 2 + randRange(-50, 50), cv.height - randRange(25, 55), 19, randRange(240, 310), function () { return randRange(0, 1); });
     }
 
-    function enterFreeRoll(nextIdx = cityIdx) {
-      cityIdx = nextIdx; isDaily = false; hillLift = 0; hillShift = 0;
+    function enterFreeRoll(nextIdx) {
+      cityIdx = typeof nextIdx === "number" && !isNaN(nextIdx) ? nextIdx : cityIdx;
+      isDaily = false; hillLift = 0; hillShift = 0;
       if ($("dailyLabel")) $("dailyLabel").textContent = "Free-roll mode · tap for today's seed";
-      renderCityChips(); generateRandomScene();
+      renderCityChips();
+      generateRandomScene();
     }
 
     function drawFrame() {
       try {
-        const city = CITIES[cityIdx] || CITIES[0];
-        const grad = ctx.createLinearGradient(0, 0, 0, cv.height);
-        grad.addColorStop(0, scene.skyTop); grad.addColorStop(1, scene.skyBot);
-        ctx.fillStyle = grad; ctx.fillRect(0, 0, cv.width, cv.height);
+        var city = CITIES[cityIdx] || CITIES[0];
+        var grad = ctx.createLinearGradient(0, 0, 0, cv.height);
+        grad.addColorStop(0, scene.skyTop);
+        grad.addColorStop(1, scene.skyBot);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, cv.width, cv.height);
 
-        if (scene.isNight && Array.isArray(scene.stars)) {
-          for (const st of scene.stars) {
+        if (scene.isNight && scene.stars && scene.stars.length) {
+          for (var si = 0; si < scene.stars.length; si++) {
+            var st = scene.stars[si];
             st.phase += st.twinkle;
-            const alpha = 0.35 + (0.5 + 0.5 * Math.sin(st.phase)) * 0.65;
-            ctx.fillStyle = `rgba(255, 251, 235, ${alpha.toFixed(2)})`;
+            var alpha = 0.35 + (0.5 + 0.5 * Math.sin(st.phase)) * 0.65;
+            ctx.fillStyle = "rgba(255, 251, 235, " + alpha.toFixed(2) + ")";
             ctx.beginPath(); ctx.arc(st.x, st.y, st.radius, 0, Math.PI * 2); ctx.fill();
           }
         }
@@ -328,4 +414,49 @@
 
         if (scene.plane) {
           scene.plane.x += scene.plane.speed;
-          if (scene.plane.speed > 0 && scene
+          if (scene.plane.speed > 0 && scene.plane.x > cv.width + 75) scene.plane.x = -75;
+          else if (scene.plane.speed < 0 && scene.plane.x < -75) scene.plane.x = cv.width + 75;
+          ctx.save();
+          ctx.translate(scene.plane.x, scene.plane.y);
+          ctx.scale(scene.plane.scale * scene.plane.dir, scene.plane.scale);
+          ctx.fillStyle = "#f8fafc";
+          ctx.beginPath(); ctx.ellipse(0, 0, 16, 4, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.moveTo(-10, -2); ctx.lineTo(-16, -9); ctx.lineTo(-5, -2); ctx.closePath(); ctx.fill();
+          ctx.fillStyle = "#cbd5e1";
+          ctx.beginPath(); ctx.moveTo(-2, 0); ctx.lineTo(5, 7); ctx.lineTo(-6, 7); ctx.closePath(); ctx.fill();
+          ctx.restore();
+        }
+
+        var radius = scene.startRadius;
+        for (var ri = 0; ri < scene.colors.length; ri++) {
+          ctx.beginPath();
+          ctx.arc(scene.cx, scene.cy, radius, Math.PI, 0);
+          ctx.lineWidth = scene.bandWidth;
+          ctx.strokeStyle = scene.colors[ri];
+          ctx.lineCap = "round";
+          ctx.stroke();
+          radius -= scene.bandWidth - 1;
+        }
+
+        if (scene.clouds && scene.clouds.length) {
+          for (var cli = 0; cli < scene.clouds.length; cli++) {
+            var cl = scene.clouds[cli];
+            cl.x += cl.speed;
+            if (cl.x - 80 > cv.width) cl.x = -90;
+            ctx.save();
+            ctx.translate(cl.x, cl.y);
+            ctx.scale(cl.scale, cl.scale);
+            ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+            ctx.strokeStyle = "rgba(148, 163, 184, 0.35)";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, 0, 22, 0, Math.PI * 2);
+            ctx.arc(20, -7, 26, 0, Math.PI * 2);
+            ctx.arc(44, 0, 20, 0, Math.PI * 2);
+            ctx.arc(22, 8, 20, 0, Math.PI * 2);
+            ctx.fill(); ctx.stroke();
+            ctx.restore();
+          }
+        }
+
+        draw
