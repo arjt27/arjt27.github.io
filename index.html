@@ -115,6 +115,28 @@
     var ctx = cv.getContext("2d");
     if (!ctx) return;
 
+    function dist2D(ax, ay, bx, by) {
+      var dx = ax - bx;
+      var dy = ay - by;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function drawOval(x, y, rx, ry) {
+      var rX = Math.max(1, Math.abs(rx));
+      var rY = Math.max(1, Math.abs(ry));
+      if (typeof ctx.ellipse === "function") {
+        ctx.beginPath();
+        ctx.ellipse(x, y, rX, rY, 0, 0, Math.PI * 2);
+        return;
+      }
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(rX, rY);
+      ctx.beginPath();
+      ctx.arc(0, 0, 1, 0, Math.PI * 2);
+      ctx.restore();
+    }
+
     var CITIES = [
       { name: "New York", tzOffset: -5, lat: 40.71, lon: -74.01, temp: "", weather: "", code: 0 },
       { name: "Chicago", tzOffset: -6, lat: 41.88, lon: -87.63, temp: "", weather: "", code: 0 },
@@ -274,8 +296,7 @@
       } else if (item.kind === "box") {
         ctx.beginPath(); ctx.rect(Math.min(item.x1, item.x2), Math.min(item.y1, item.y2), Math.abs(item.x2 - item.x1), Math.abs(item.y2 - item.y1)); ctx.fill(); ctx.stroke();
       } else if (item.kind === "oval") {
-        ctx.beginPath();
-        ctx.ellipse((item.x1 + item.x2) / 2, (item.y1 + item.y2) / 2, Math.max(4, Math.abs(item.x2 - item.x1) / 2), Math.max(4, Math.abs(item.y2 - item.y1) / 2), 0, 0, Math.PI * 2);
+        drawOval((item.x1 + item.x2) / 2, (item.y1 + item.y2) / 2, Math.max(4, Math.abs(item.x2 - item.x1) / 2), Math.max(4, Math.abs(item.y2 - item.y1) / 2));
         ctx.fill(); ctx.stroke();
       }
       ctx.restore();
@@ -309,7 +330,11 @@
         orbX: props.orbX, orbY: props.orbY, clouds: props.clouds, stars: props.stars,
         hills: props.hills, trees: props.trees, plane: props.plane, hillRef: props.hillRef
       };
-      var weatherText = [city.weather, city.temp, clk.label].filter(Boolean).join(", ");
+      var parts = [];
+      if (city.weather) parts.push(city.weather);
+      if (city.temp) parts.push(city.temp);
+      if (clk.label) parts.push(clk.label);
+      var weatherText = parts.join(", ");
       if ($("cap")) {
         $("cap").textContent = weatherText
           ? (isDaily ? "Daily " : "") + city.name + " (" + weatherText + ") | " + scene.paletteName
@@ -361,7 +386,7 @@
           ctx.translate(scene.plane.x, scene.plane.y);
           ctx.scale(scene.plane.scale * scene.plane.dir, scene.plane.scale);
           ctx.fillStyle = "#f8fafc";
-          ctx.beginPath(); ctx.ellipse(0, 0, 16, 4, 0, 0, Math.PI * 2); ctx.fill();
+          drawOval(0, 0, 16, 4); ctx.fill();
           ctx.beginPath(); ctx.moveTo(-10, -2); ctx.lineTo(-16, -9); ctx.lineTo(-5, -2); ctx.closePath(); ctx.fill();
           ctx.fillStyle = "#cbd5e1";
           ctx.beginPath(); ctx.moveTo(-2, 0); ctx.lineTo(5, 7); ctx.lineTo(-6, 7); ctx.closePath(); ctx.fill();
@@ -394,4 +419,82 @@
             ctx.arc(0, 0, 22, 0, Math.PI * 2);
             ctx.arc(20, -7, 26, 0, Math.PI * 2);
             ctx.arc(44, 0, 20, 0, Math.PI * 2);
-            ctx.arc(22, 8,
+            ctx.arc(22, 8, 20, 0, Math.PI * 2);
+            ctx.fill(); ctx.stroke();
+            ctx.restore();
+          }
+        }
+
+        drawBuildings(scene.period);
+        if (scene.hills && scene.hills.length) {
+          for (var hi = 0; hi < scene.hills.length; hi++) {
+            var h = scene.hills[hi];
+            ctx.beginPath();
+            ctx.moveTo(0, cv.height);
+            for (var x = 0; x <= cv.width; x += 16) ctx.lineTo(x, hillSurfaceY(h, x, hi));
+            ctx.lineTo(cv.width, cv.height);
+            ctx.closePath();
+            ctx.fillStyle = h.color;
+            ctx.fill();
+          }
+        }
+        if (scene.hillRef && scene.trees && scene.trees.length) {
+          for (var tri = 0; tri < scene.trees.length; tri++) {
+            var tr = scene.trees[tri];
+            ctx.save();
+            ctx.translate(tr.x, hillSurfaceY(scene.hillRef, tr.x, 1) + 2);
+            ctx.scale(tr.scale, tr.scale);
+            ctx.fillStyle = "#1e1b18";
+            ctx.fillRect(-2.5, -11, 5, 12);
+            ctx.fillStyle = tr.canopy;
+            ctx.beginPath();
+            ctx.arc(0, -17, 9.5, 0, Math.PI * 2);
+            ctx.arc(-6.5, -12.5, 7, 0, Math.PI * 2);
+            ctx.arc(6.5, -12.5, 7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+        for (var di = 0; di < drawings.length; di++) renderSingleDrawing(drawings[di]);
+        if (activeShape) renderSingleDrawing(activeShape);
+      } catch (_err) {}
+      if (typeof window.requestAnimationFrame === "function") {
+        window.requestAnimationFrame(drawFrame);
+      } else {
+        window.setTimeout(drawFrame, 33);
+      }
+    }
+
+    function setToolMode(nextMode) {
+      toolMode = nextMode;
+      var modes = ["drag", "line", "oval", "box"];
+      var ids = ["modeDrag", "modeLine", "modeOval", "modeBox"];
+      for (var i = 0; i < modes.length; i++) {
+        var el = $(ids[i]);
+        if (el) el.classList.toggle("on", modes[i] === nextMode);
+      }
+      cv.classList.toggle("draw-mode", nextMode !== "drag");
+    }
+    function toCanvasCoords(ev) {
+      var r = cv.getBoundingClientRect();
+      if (!r.width || !r.height) return { x: 0, y: 0 };
+      return { x: ((ev.clientX - r.left) / r.width) * cv.width, y: ((ev.clientY - r.top) / r.height) * cv.height };
+    }
+    function hitsRainbow(x, y) {
+      var dist = dist2D(x, y, scene.cx, scene.cy);
+      var outer = scene.startRadius + scene.bandWidth;
+      var inner = Math.max(16, scene.startRadius - scene.colors.length * (scene.bandWidth - 1) - scene.bandWidth);
+      return y <= scene.cy + 14 && dist >= inner && dist <= outer;
+    }
+
+    cv.addEventListener("pointerdown", function (ev) {
+      activePointerId = ev.pointerId;
+      if (typeof cv.setPointerCapture === "function") { try { cv.setPointerCapture(ev.pointerId); } catch (e) {} }
+      var pt = toCanvasCoords(ev);
+      if (toolMode !== "drag") { activeShape = { kind: toolMode, color: drawColor, x1: pt.x, y1: pt.y, x2: pt.x, y2: pt.y }; return; }
+      dragLastX = pt.x; dragLastY = pt.y; dragTarget = hitsRainbow(pt.x, pt.y) ? "rainbow" : "hills"; cv.classList.add("dragging");
+    });
+    cv.addEventListener("pointermove", function (ev) {
+      if (activePointerId !== null && ev.pointerId !== activePointerId) return;
+      var pt = toCanvasCoords(ev);
+      if (activeShape) { activeShape.x2 = pt.x;
