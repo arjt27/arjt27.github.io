@@ -134,7 +134,6 @@
     let cityIdx = 0, snackBag = [], lastSnack = "", isDaily = true, signedInUser = "";
     let toolMode = "drag", drawColor = "#fef08a", drawings = [], activeShape = null, dragTarget = null;
     let dragLastX = 0, dragLastY = 0, hillLift = 0, hillShift = 0, activePointerId = null;
-    let scene = { paletteName: "Classic", colors: PALETTES[0][1], skyTop: "#0284c7", skyBot: "#38bdf8", isNight: false, period: "day", cx: 440, cy: 420, bandWidth: 19, startRadius: 275, orbX: 720, orbY: 88, clouds: [], stars: [], hills: [], trees: [], plane: { x: -70, y: 84, speed: 0.85, dir: 1, scale: 0.9 }, hillRef: null };
 
     function randInt(max) {
       if (max <= 1) return 0;
@@ -202,6 +201,20 @@
       return { orbX: 130 + rngFn() * 620, orbY: 70 + rngFn() * 54, clouds, stars, hills, trees, plane, hillRef: hills[1] };
     }
 
+    let scene = {
+      paletteName: PALETTES[0][0],
+      colors: PALETTES[0][1],
+      skyTop: "#0284c7",
+      skyBot: "#38bdf8",
+      isNight: false,
+      period: "day",
+      cx: 440,
+      cy: 420,
+      bandWidth: 19,
+      startRadius: 275,
+      ...buildSkyscapeProps(() => Math.random(), 0, "day")
+    };
+
     function hillSurfaceY(h, x, layerIdx) {
       const lift = layerIdx === 1 ? hillLift : hillLift * 0.5;
       const shift = layerIdx === 1 ? hillShift : hillShift * 0.5;
@@ -256,7 +269,19 @@
     function applyScene(paletteTuple, cx, cy, bandWidth, startRadius, rngFn) {
       const city = CITIES[cityIdx] || CITIES[0], clk = getCityClock(city.tzOffset);
       const [skyTop, skyBot, isNight] = computeSkyPalette(city.code, clk.period);
-      scene = { paletteName: paletteTuple[0], colors: paletteTuple[1], skyTop, skyBot, isNight, period: clk.period, cx, cy, bandWidth, startRadius, ...buildSkyscapeProps(rngFn || (() => randRange(0, 1)), city.code, clk.period) };
+      scene = {
+        paletteName: paletteTuple[0],
+        colors: paletteTuple[1],
+        skyTop,
+        skyBot,
+        isNight,
+        period: clk.period,
+        cx,
+        cy,
+        bandWidth,
+        startRadius,
+        ...buildSkyscapeProps(rngFn || (() => randRange(0, 1)), city.code, clk.period)
+      };
       const weatherText = [city.weather, city.temp, clk.label].filter(Boolean).join(", ");
       if ($("cap")) $("cap").textContent = weatherText ? `${isDaily ? "Daily " : ""}${city.name} (${weatherText}) • ${scene.paletteName}` : `${isDaily ? "Daily " : ""}${city.name} • ${scene.paletteName}`;
     }
@@ -277,7 +302,7 @@
       grad.addColorStop(0, scene.skyTop); grad.addColorStop(1, scene.skyBot);
       ctx.fillStyle = grad; ctx.fillRect(0, 0, cv.width, cv.height);
 
-      if (scene.isNight) {
+      if (scene.isNight && Array.isArray(scene.stars)) {
         for (const st of scene.stars) {
           st.phase += st.twinkle;
           const alpha = 0.35 + (0.5 + 0.5 * Math.sin(st.phase)) * 0.65;
@@ -309,22 +334,26 @@
         radius -= scene.bandWidth - 1;
       }
 
-      for (const cl of scene.clouds) {
-        cl.x += cl.speed;
-        if (cl.x - 80 > cv.width) cl.x = -90;
-        ctx.save(); ctx.translate(cl.x, cl.y); ctx.scale(cl.scale, cl.scale);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.92)"; ctx.strokeStyle = "rgba(148, 163, 184, 0.35)"; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.arc(20, -7, 26, 0, Math.PI * 2); ctx.arc(44, 0, 20, 0, Math.PI * 2); ctx.arc(22, 8, 20, 0, Math.PI * 2);
-        ctx.fill(); ctx.stroke(); ctx.restore();
+      if (Array.isArray(scene.clouds)) {
+        for (const cl of scene.clouds) {
+          cl.x += cl.speed;
+          if (cl.x - 80 > cv.width) cl.x = -90;
+          ctx.save(); ctx.translate(cl.x, cl.y); ctx.scale(cl.scale, cl.scale);
+          ctx.fillStyle = "rgba(255, 255, 255, 0.92)"; ctx.strokeStyle = "rgba(148, 163, 184, 0.35)"; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.arc(20, -7, 26, 0, Math.PI * 2); ctx.arc(44, 0, 20, 0, Math.PI * 2); ctx.arc(22, 8, 20, 0, Math.PI * 2);
+          ctx.fill(); ctx.stroke(); ctx.restore();
+        }
       }
 
       drawBuildings(scene.period);
-      scene.hills.forEach((h, idx) => {
-        ctx.beginPath(); ctx.moveTo(0, cv.height);
-        for (let x = 0; x <= cv.width; x += 16) ctx.lineTo(x, hillSurfaceY(h, x, idx));
-        ctx.lineTo(cv.width, cv.height); ctx.closePath(); ctx.fillStyle = h.color; ctx.fill();
-      });
-      if (scene.hillRef && scene.trees) {
+      if (Array.isArray(scene.hills)) {
+        scene.hills.forEach((h, idx) => {
+          ctx.beginPath(); ctx.moveTo(0, cv.height);
+          for (let x = 0; x <= cv.width; x += 16) ctx.lineTo(x, hillSurfaceY(h, x, idx));
+          ctx.lineTo(cv.width, cv.height); ctx.closePath(); ctx.fillStyle = h.color; ctx.fill();
+        });
+      }
+      if (scene.hillRef && Array.isArray(scene.trees)) {
         for (const tr of scene.trees) {
           ctx.save(); ctx.translate(tr.x, hillSurfaceY(scene.hillRef, tr.x, 1) + 2); ctx.scale(tr.scale, tr.scale);
           ctx.fillStyle = "#1e1b18"; ctx.fillRect(-2.5, -11, 5, 12);
@@ -396,4 +425,112 @@
     if ($("modeLine")) $("modeLine").onclick = () => setToolMode("line");
     if ($("modeOval")) $("modeOval").onclick = () => setToolMode("oval");
     if ($("modeBox")) $("modeBox").onclick = () => setToolMode("box");
-    document.querySelectorAll(".swatch").forEach
+    document.querySelectorAll(".swatch").forEach((sw) => {
+      sw.onclick = () => {
+        drawColor = sw.dataset.col || "#fef08a";
+        document.querySelectorAll(".swatch").forEach((s) => s.classList.toggle("on", s === sw));
+        if (toolMode === "drag") setToolMode("line");
+      };
+    });
+    if ($("undoDrawBtn")) $("undoDrawBtn").onclick = () => drawings.pop();
+    if ($("clearDrawBtn")) $("clearDrawBtn").onclick = () => { drawings = []; activeShape = null; };
+
+    function applyDailyVibe() {
+      isDaily = true; hillLift = 0; hillShift = 0;
+      const key = getDayKey(), sr = createSeededRng(key);
+      cityIdx = Math.floor(sr() * CITIES.length);
+      const pal = PALETTES[Math.floor(sr() * PALETTES.length)];
+      const dailySnack = DAILY_SNACKS[Math.floor(sr() * DAILY_SNACKS.length)];
+      lastSnack = dailySnack;
+      if ($("snack")) $("snack").textContent = "Daily bite: " + dailySnack;
+      if ($("dailyLabel")) $("dailyLabel").textContent = `Today's Sky & Bite (${key})`;
+      renderCityChips();
+      applyScene(pal, cv.width / 2 + (sr() * 100 - 50), cv.height - (sr() * 30 + 25), 19, sr() * 70 + 240, sr);
+    }
+
+    function nextSnack() {
+      isDaily = false;
+      if ($("dailyLabel")) $("dailyLabel").textContent = "Free-roll mode · tap for today's seed";
+      if (!snackBag.length) {
+        for (const b of BASES) for (const t of TOPPINGS) snackBag.push(`${b} with ${t}`, `${pickRandom(FORMATS)} of ${b} + ${t}`);
+        for (let i = snackBag.length - 1; i > 0; i--) { const j = randInt(i + 1); [snackBag[i], snackBag[j]] = [snackBag[j], snackBag[i]]; }
+      }
+      let candidate = snackBag.pop();
+      if (candidate === lastSnack && snackBag.length) { const j = randInt(snackBag.length); [candidate, snackBag[j]] = [snackBag[j], candidate]; }
+      lastSnack = candidate;
+      if ($("snack")) $("snack").textContent = "Snack idea: " + candidate;
+    }
+
+    if ($("copyWalletBtn")) {
+      $("copyWalletBtn").onclick = async () => {
+        const addr = ($("piWalletAddr") && $("piWalletAddr").textContent) || "", statusEl = $("copyStatus");
+        try {
+          if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") await navigator.clipboard.writeText(addr);
+          else { const ta = document.createElement("textarea"); ta.value = addr; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); }
+          if (statusEl) statusEl.textContent = "Wallet address copied";
+        } catch { if (statusEl) statusEl.textContent = "Select and copy the address manually"; }
+      };
+    }
+
+    const hasPiSdk = () => Boolean(window.Pi && typeof window.Pi.init === "function" && typeof window.Pi.authenticate === "function");
+    function initPiSdk() {
+      if (!hasPiSdk()) return false;
+      try { window.Pi.init({ version: "2.0" }); return true; } catch { return false; }
+    }
+    function syncPiAuthUI() {
+      const statEl = $("piStat"), btnEl = $("piLoginBtn"), clearEl = $("piClearBtn");
+      if (signedInUser) {
+        if (statEl) statEl.textContent = `Signed in as @${signedInUser}`;
+        if (btnEl) btnEl.textContent = "Refresh Pi Sign-In";
+        if (clearEl) clearEl.hidden = false;
+      } else {
+        if (statEl) statEl.textContent = "Guest mode (not signed in)";
+        if (btnEl) btnEl.textContent = "Sign in with Pi";
+        if (clearEl) clearEl.hidden = true;
+      }
+    }
+    function authenticateWithTimeout(ms = 12000) {
+      return new Promise((resolve, reject) => {
+        let settled = false;
+        const timer = window.setTimeout(() => { if (!settled) { settled = true; reject(new Error("Pi sign-in timed out")); } }, ms);
+        Promise.resolve().then(() => window.Pi.authenticate(["username"], () => {})).then((res) => {
+          if (!settled) { settled = true; window.clearTimeout(timer); resolve(res); }
+        }).catch((err) => { if (!settled) { settled = true; window.clearTimeout(timer); reject(err); } });
+      });
+    }
+
+    initPiSdk();
+    if ($("piLoginBtn")) {
+      $("piLoginBtn").onclick = async () => {
+        const statEl = $("piStat"), btnEl = $("piLoginBtn");
+        if (!initPiSdk()) { if (statEl) statEl.textContent = "Pi SDK not loaded — open in Pi Browser"; return; }
+        try {
+          if (btnEl) btnEl.disabled = true;
+          if (statEl) statEl.textContent = "Signing in with Pi...";
+          const auth = await authenticateWithTimeout(12000);
+          signedInUser = auth && auth.user && auth.user.username ? auth.user.username : "Pioneer";
+          syncPiAuthUI();
+        } catch (err) {
+          if (statEl) statEl.textContent = err && err.message === "Pi sign-in timed out" ? "Pi sign-in timed out — reopen in Pi Browser" : "Pi sign-in cancelled or unavailable";
+        } finally { if (btnEl) btnEl.disabled = false; }
+      };
+    }
+    if ($("piClearBtn")) $("piClearBtn").onclick = () => { signedInUser = ""; syncPiAuthUI(); };
+    if ($("dailyBtn")) $("dailyBtn").onclick = applyDailyVibe;
+    if ($("gen")) $("gen").onclick = () => enterFreeRoll((cityIdx + 1) % CITIES.length);
+    if ($("sBtn")) $("sBtn").onclick = nextSnack;
+    if ($("snack")) $("snack").onclick = nextSnack;
+
+    syncPiAuthUI();
+    applyDailyVibe();
+    window.requestAnimationFrame(drawFrame);
+
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${CITIES.map((c) => c.lat).join(",")}&longitude=${CITIES.map((c) => c.lon).join(",")}&current=temperature_2m,weather_code`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data) return;
+        (Array.isArray(data) ? data : [data]).forEach((entry, idx) => {
+          if (entry && entry.current && CITIES[idx]) {
+            CITIES[idx].temp = Math.round(entry.current.temperature_2m) + "°C";
+            CITIES[idx].code = entry.current.weather_code;
+            CITIES[idx].weather
